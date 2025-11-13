@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-time Subscriptions Test - Story Pointer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 2rem;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: #111;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 2rem;
+    }
+
+    .status {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      font-weight: 500;
+    }
+
+    .status.loading {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status.connected {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .section {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .section h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: #111;
+    }
+
+    .section p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #6b7280;
+    }
+
+    button.secondary:hover {
+      background: #4b5563;
+    }
+
+    button.danger {
+      background: #ef4444;
+    }
+
+    button.danger:hover {
+      background: #dc2626;
+    }
+
+    .log {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+    }
+
+    .log-entry {
+      padding: 0.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-entry.info {
+      color: #3b82f6;
+    }
+
+    .log-entry.success {
+      color: #10b981;
+    }
+
+    .log-entry.error {
+      color: #ef4444;
+    }
+
+    .log-entry.event {
+      color: #8b5cf6;
+    }
+
+    .timestamp {
+      color: #6b7280;
+      font-size: 0.75rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .test-result {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    .test-result.pass {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .test-result.fail {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .test-result.pending {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .icon {
+      font-size: 1.25rem;
+    }
+
+    .instructions {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 4px;
+    }
+
+    .instructions strong {
+      color: #1e40af;
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Real-time Subscriptions Test</h1>
+    <p class="subtitle">Test and verify Supabase Real-time functionality for Story Pointer</p>
+
+    <!-- Connection Status -->
+    <div id="status" class="status loading">
+      <span id="status-text">⏳ Initializing...</span>
+    </div>
+
+    <!-- Instructions -->
+    <div class="section">
+      <h2>📋 Instructions</h2>
+      <div class="instructions">
+        <p><strong>Before starting:</strong></p>
+        <ol style="margin-left: 1.5rem; line-height: 1.8;">
+          <li>Ensure you have <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> set in your <code>.env.local</code></li>
+          <li>Verify real-time replication is enabled for all tables in Supabase Dashboard</li>
+          <li>Open this page in <strong>two separate browser tabs</strong> to test cross-tab real-time updates</li>
+          <li>✨ <strong>New:</strong> Test room IDs are now shared across tabs via localStorage!</li>
+        </ol>
+        <p><strong>Testing cross-tab real-time:</strong></p>
+        <ol style="margin-left: 1.5rem; line-height: 1.8;">
+          <li>Run a test in Tab 1 (e.g., "Test Participants Subscription")</li>
+          <li>Switch to Tab 2 and run the <strong>same test</strong></li>
+          <li>Both tabs will use the same test room (check the logs)</li>
+          <li>Events in one tab should appear in the other tab in real-time!</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Test Controls -->
+    <div class="section">
+      <h2>🧪 Test Controls</h2>
+      <p>Run these tests to verify real-time subscriptions work correctly.</p>
+
+      <div class="button-group">
+        <button id="test-participants" disabled>Test Participants Subscription</button>
+        <button id="test-stories" disabled>Test Stories Subscription</button>
+        <button id="test-votes" disabled>Test Votes Subscription</button>
+      </div>
+
+      <div class="button-group">
+        <button id="clear-log" class="secondary">Clear Log</button>
+        <button id="reset-test" class="danger">Reset Test</button>
+      </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="grid">
+      <!-- Participants Test -->
+      <div class="section">
+        <h2>👥 Participants Subscription</h2>
+        <div id="participants-results">
+          <div class="test-result pending">
+            <span class="icon">⏸️</span>
+            <span>Not started</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stories Test -->
+      <div class="section">
+        <h2>📖 Stories Subscription</h2>
+        <div id="stories-results">
+          <div class="test-result pending">
+            <span class="icon">⏸️</span>
+            <span>Not started</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Votes Test -->
+      <div class="section">
+        <h2>🗳️ Votes Subscription</h2>
+        <div id="votes-results">
+          <div class="test-result pending">
+            <span class="icon">⏸️</span>
+            <span>Not started</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="section">
+      <h2>📝 Event Log</h2>
+      <div id="log" class="log">
+        <div class="log-entry info">
+          <span class="timestamp">[00:00:00]</span> Waiting for connection...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase Client -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    // Configuration
+    const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+
+    // Check if environment variables are set
+    if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+      updateStatus('error', '❌ Environment variables not set. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local');
+      log('error', 'Missing environment variables. Cannot connect to Supabase.');
+      log('info', 'Create a .env.local file with your Supabase credentials.');
+    } else {
+      // Initialize Supabase client
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // Test data IDs (shared across tabs via localStorage)
+      let testRoomId = localStorage.getItem('testRoomId') || null;
+      let testStoryId = localStorage.getItem('testStoryId') || null;
+      let testParticipantId = null;
+
+      // Active channels
+      const channels = [];
+
+      // DOM elements
+      const statusEl = document.getElementById('status-text');
+      const logEl = document.getElementById('log');
+      const testParticipantsBtn = document.getElementById('test-participants');
+      const testStoriesBtn = document.getElementById('test-stories');
+      const testVotesBtn = document.getElementById('test-votes');
+      const clearLogBtn = document.getElementById('clear-log');
+      const resetTestBtn = document.getElementById('reset-test');
+
+      // Initialize
+      init();
+
+      async function init() {
+        log('info', 'Connecting to Supabase...');
+
+        try {
+          // Test connection by querying rooms table
+          const { data, error } = await supabase.from('rooms').select('id').limit(1);
+
+          if (error) throw error;
+
+          updateStatus('connected', '✅ Connected to Supabase');
+          log('success', 'Successfully connected to Supabase');
+
+          // Enable test buttons
+          testParticipantsBtn.disabled = false;
+          testStoriesBtn.disabled = false;
+          testVotesBtn.disabled = false;
+
+          // Show shared room ID if it exists
+          if (testRoomId) {
+            log('success', `Using shared test room: ${testRoomId}`);
+            log('info', '✨ This room is shared across all browser tabs!');
+          } else {
+            log('info', 'No shared test room yet. First test will create one.');
+          }
+
+          log('info', 'Ready to run tests. Click a test button to begin.');
+        } catch (err) {
+          updateStatus('error', '❌ Connection failed');
+          log('error', `Failed to connect: ${err.message}`);
+        }
+      }
+
+      // Test Participants Subscription
+      testParticipantsBtn.addEventListener('click', async () => {
+        log('info', '=== Testing Participants Subscription ===');
+
+        try {
+          // Check localStorage first (in case another tab created a room)
+          const sharedRoomId = localStorage.getItem('testRoomId');
+          if (sharedRoomId && !testRoomId) {
+            testRoomId = sharedRoomId;
+            log('success', `✨ Using shared test room from another tab: ${testRoomId}`);
+          }
+
+          // Create test room if needed
+          if (!testRoomId) {
+            const { data: room, error } = await supabase
+              .from('rooms')
+              .insert({ name: 'Test Room', point_scale: 'fibonacci' })
+              .select()
+              .single();
+
+            if (error) throw error;
+            testRoomId = room.id;
+            localStorage.setItem('testRoomId', testRoomId);
+            log('success', `Created test room: ${testRoomId}`);
+            log('info', '✨ Room ID saved to localStorage - now shared across all tabs!');
+          } else if (testRoomId === sharedRoomId) {
+            log('info', `Reusing existing test room: ${testRoomId}`);
+          }
+
+          // Subscribe to participants
+          const channel = supabase
+            .channel(`test-room:${testRoomId}:participants`)
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'participants',
+                filter: `room_id=eq.${testRoomId}`
+              },
+              (payload) => {
+                log('event', `Participant ${payload.eventType}: ${JSON.stringify(payload.new || payload.old)}`);
+                updateTestResult('participants', 'pass', `Received ${payload.eventType} event`);
+              }
+            )
+            .subscribe((status, err) => {
+              if (status === 'SUBSCRIBED') {
+                log('success', 'Subscribed to participants channel');
+                updateTestResult('participants', 'pending', 'Subscribed, waiting for events...');
+              }
+              if (status === 'CHANNEL_ERROR') {
+                log('error', `Subscription error: ${err}`);
+                updateTestResult('participants', 'fail', `Error: ${err}`);
+              }
+            });
+
+          channels.push(channel);
+
+          // Insert test participant after 1 second
+          setTimeout(async () => {
+            log('info', 'Inserting test participant...');
+            const { error } = await supabase
+              .from('participants')
+              .insert({
+                room_id: testRoomId,
+                name: 'Test Participant',
+                is_leader: true
+              });
+
+            if (error) {
+              log('error', `Failed to insert participant: ${error.message}`);
+            }
+          }, 1000);
+
+        } catch (err) {
+          log('error', `Test failed: ${err.message}`);
+          updateTestResult('participants', 'fail', err.message);
+        }
+      });
+
+      // Test Stories Subscription
+      testStoriesBtn.addEventListener('click', async () => {
+        log('info', '=== Testing Stories Subscription ===');
+
+        try {
+          // Check localStorage first (in case another tab created a room)
+          testRoomId = localStorage.getItem('testRoomId') || testRoomId;
+          testStoryId = localStorage.getItem('testStoryId') || testStoryId;
+
+          // Create test room if needed
+          if (!testRoomId) {
+            const { data: room, error } = await supabase
+              .from('rooms')
+              .insert({ name: 'Test Room', point_scale: 'fibonacci' })
+              .select()
+              .single();
+
+            if (error) throw error;
+            testRoomId = room.id;
+            localStorage.setItem('testRoomId', testRoomId);
+            log('success', `Created test room: ${testRoomId}`);
+            log('info', '✨ Room ID saved to localStorage - now shared across all tabs!');
+          }
+
+          // Subscribe to stories
+          const channel = supabase
+            .channel(`test-room:${testRoomId}:stories`)
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'stories',
+                filter: `room_id=eq.${testRoomId}`
+              },
+              (payload) => {
+                log('event', `Story ${payload.eventType}: ${JSON.stringify(payload.new || payload.old)}`);
+                updateTestResult('stories', 'pass', `Received ${payload.eventType} event`);
+              }
+            )
+            .subscribe((status, err) => {
+              if (status === 'SUBSCRIBED') {
+                log('success', 'Subscribed to stories channel');
+                updateTestResult('stories', 'pending', 'Subscribed, waiting for events...');
+              }
+              if (status === 'CHANNEL_ERROR') {
+                log('error', `Subscription error: ${err}`);
+                updateTestResult('stories', 'fail', `Error: ${err}`);
+              }
+            });
+
+          channels.push(channel);
+
+          // Insert test story after 1 second
+          setTimeout(async () => {
+            log('info', 'Inserting test story...');
+            const { data, error } = await supabase
+              .from('stories')
+              .insert({
+                room_id: testRoomId,
+                title: 'Test Story',
+                description: 'This is a test story for real-time subscriptions'
+              })
+              .select()
+              .single();
+
+            if (error) {
+              log('error', `Failed to insert story: ${error.message}`);
+            } else {
+              testStoryId = data.id;
+            }
+          }, 1000);
+
+        } catch (err) {
+          log('error', `Test failed: ${err.message}`);
+          updateTestResult('stories', 'fail', err.message);
+        }
+      });
+
+      // Test Votes Subscription
+      testVotesBtn.addEventListener('click', async () => {
+        log('info', '=== Testing Votes Subscription ===');
+
+        try {
+          // Check localStorage first (in case another tab created a room)
+          testRoomId = localStorage.getItem('testRoomId') || testRoomId;
+          testStoryId = localStorage.getItem('testStoryId') || testStoryId;
+
+          // Create test room if needed
+          if (!testRoomId) {
+            const { data: room, error } = await supabase
+              .from('rooms')
+              .insert({ name: 'Test Room', point_scale: 'fibonacci' })
+              .select()
+              .single();
+
+            if (error) throw error;
+            testRoomId = room.id;
+            localStorage.setItem('testRoomId', testRoomId);
+            log('success', `Created test room: ${testRoomId}`);
+            log('info', '✨ Room ID saved to localStorage - now shared across all tabs!');
+          }
+
+          // Create test story if needed
+          if (!testStoryId) {
+            const { data: story, error } = await supabase
+              .from('stories')
+              .insert({
+                room_id: testRoomId,
+                title: 'Test Story for Votes'
+              })
+              .select()
+              .single();
+
+            if (error) throw error;
+            testStoryId = story.id;
+            localStorage.setItem('testStoryId', testStoryId);
+            log('success', `Created test story: ${testStoryId}`);
+          }
+
+          // Create test participant if needed
+          if (!testParticipantId) {
+            const { data: participant, error } = await supabase
+              .from('participants')
+              .insert({
+                room_id: testRoomId,
+                name: 'Test Voter',
+                is_leader: false
+              })
+              .select()
+              .single();
+
+            if (error) throw error;
+            testParticipantId = participant.id;
+            log('success', `Created test participant: ${testParticipantId}`);
+          }
+
+          // Subscribe to votes
+          const channel = supabase
+            .channel(`test-story:${testStoryId}:votes`)
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'votes',
+                filter: `story_id=eq.${testStoryId}`
+              },
+              (payload) => {
+                log('event', `Vote ${payload.eventType}: ${JSON.stringify(payload.new || payload.old)}`);
+                updateTestResult('votes', 'pass', `Received ${payload.eventType} event`);
+              }
+            )
+            .subscribe((status, err) => {
+              if (status === 'SUBSCRIBED') {
+                log('success', 'Subscribed to votes channel');
+                updateTestResult('votes', 'pending', 'Subscribed, waiting for events...');
+              }
+              if (status === 'CHANNEL_ERROR') {
+                log('error', `Subscription error: ${err}`);
+                updateTestResult('votes', 'fail', `Error: ${err}`);
+              }
+            });
+
+          channels.push(channel);
+
+          // Insert test vote after 1 second
+          setTimeout(async () => {
+            log('info', 'Inserting test vote...');
+            const { error } = await supabase
+              .from('votes')
+              .insert({
+                story_id: testStoryId,
+                participant_id: testParticipantId,
+                point_value: '5',
+                sentiment: 'confident'
+              });
+
+            if (error) {
+              log('error', `Failed to insert vote: ${error.message}`);
+            }
+          }, 1000);
+
+        } catch (err) {
+          log('error', `Test failed: ${err.message}`);
+          updateTestResult('votes', 'fail', err.message);
+        }
+      });
+
+      // Clear log
+      clearLogBtn.addEventListener('click', () => {
+        logEl.innerHTML = '';
+        log('info', 'Log cleared');
+      });
+
+      // Reset test
+      resetTestBtn.addEventListener('click', async () => {
+        log('info', 'Resetting test...');
+
+        // Unsubscribe from all channels
+        for (const channel of channels) {
+          await supabase.removeChannel(channel);
+        }
+        channels.length = 0;
+
+        // Clear test data
+        testRoomId = null;
+        testStoryId = null;
+        testParticipantId = null;
+
+        // Clear localStorage
+        localStorage.removeItem('testRoomId');
+        localStorage.removeItem('testStoryId');
+        log('success', 'Cleared localStorage - all tabs reset');
+
+        // Reset test results
+        updateTestResult('participants', 'pending', 'Not started');
+        updateTestResult('stories', 'pending', 'Not started');
+        updateTestResult('votes', 'pending', 'Not started');
+
+        log('success', 'Test reset complete');
+      });
+
+      // Utility functions
+      function updateStatus(type, message) {
+        const status = document.getElementById('status');
+        status.className = `status ${type}`;
+        statusEl.textContent = message;
+      }
+
+      function log(level, message) {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${level}`;
+        entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+        logEl.appendChild(entry);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function updateTestResult(test, status, message) {
+        const resultsEl = document.getElementById(`${test}-results`);
+        const icon = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⏸️';
+        resultsEl.innerHTML = `
+          <div class="test-result ${status}">
+            <span class="icon">${icon}</span>
+            <span>${message}</span>
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

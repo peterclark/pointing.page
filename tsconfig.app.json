@@ -29,5 +29,9 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/lib/supabase/subscriptions.example.ts",
+    "src/lib/supabase/test-types.ts"
+  ]
 }
