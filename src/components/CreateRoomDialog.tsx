@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { createRoomSchema, type CreateRoomFormData } from "@/lib/schemas";
 import {
   generateRoomName,
-  getParticipantId,
   getParticipantName,
   saveParticipantName,
 } from "@/lib/utils";
