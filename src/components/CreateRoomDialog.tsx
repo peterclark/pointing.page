@@ -86,7 +86,7 @@ export function CreateRoomDialog({
       saveParticipantName(data.participantName);
 
       // Join the room as the first participant (becomes leader)
-      // Pass null for userId since this is an anonymous user
+      // Pass null for userId since we're using localStorage-based identification
       const participant = await joinRoom(room.id, null, data.participantName);
 
       // Save the participant's database ID to localStorage for future room access

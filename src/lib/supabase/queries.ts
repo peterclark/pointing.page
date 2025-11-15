@@ -211,7 +211,7 @@ export async function updateRoom(
  * - If this is the first participant, they become the leader
  *
  * @param roomId - UUID of the room to join
- * @param userId - UUID of the authenticated user (nullable for anonymous users)
+ * @param userId - UUID of the authenticated user (nullable for localStorage-based users)
  * @param name - Display name for this participant in the room
  * @returns The participant record (existing or newly created)
  * @throws DatabaseError if join fails
