@@ -2,9 +2,9 @@
 
 ## MVP Phase - Core Estimation Experience
 
-1. [ ] Database Schema & Supabase Setup — Create Supabase project with tables for rooms, participants, votes, and stories; configure real-time subscriptions for live updates; set up row-level security policies for basic access control `M`
+1. [x] Database Schema & Supabase Setup — Create Supabase project with tables for rooms, participants, votes, and stories; configure real-time subscriptions for live updates; set up row-level security policies for basic access control `M`
 
-2. [ ] Room Creation & Management — Implement room creation with unique shareable links, automatic leader assignment, and room persistence; includes basic room settings (name, point scale selection) `S`
+2. [x] Room Creation & Management — Implement room creation with unique shareable links, automatic leader assignment, and room persistence; includes basic room settings (name, point scale selection) `S`
 
 3. [ ] Room Joining Flow — Build join page that accepts room links/codes, validates room existence, prompts for participant name, and adds participants to active session with real-time participant list updates `S`
 

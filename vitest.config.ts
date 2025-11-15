@@ -4,7 +4,9 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    // Use happy-dom for tests that need browser APIs (localStorage, navigator)
+    // Use node environment for database tests
+    environment: 'happy-dom',
     setupFiles: ['./src/tests/setup.ts'],
     testTimeout: 30000, // 30 seconds for database operations
     hookTimeout: 30000,

@@ -6,9 +6,11 @@
  * - Environment variable verification
  * - Global test utilities
  * - Database cleanup helpers
+ * - Testing library matchers
  */
 
 import { config } from 'dotenv';
+import '@testing-library/jest-dom';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
