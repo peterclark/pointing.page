@@ -556,7 +556,7 @@ export function monitorConnectionStatus(
   // so we create a dedicated monitoring channel
   const monitorChannel = supabase
     .channel('connection-monitor')
-    .subscribe((status: string, err?: Error) => {
+    .subscribe((status: string, _err?: Error) => {
       if (status === 'SUBSCRIBED') {
         onStatusChange('connected');
       } else if (status === 'CLOSED') {

@@ -56,7 +56,7 @@ const story: Tables<'stories'> = {
   created_at: '2025-11-12T00:00:00Z',
 };
 
-const vote: Tables<'votes'> = {
+const _vote: Tables<'votes'> = {
   id: '123e4567-e89b-12d3-a456-426614174004',
   story_id: story.id,
   participant_id: participant.id,
