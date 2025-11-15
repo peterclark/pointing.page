@@ -516,6 +516,47 @@ export async function setActiveStory(
 }
 
 /**
+ * Clear the active story in a room (deactivates all stories)
+ *
+ * This is used to return to the story creation form after voting is complete.
+ * Only the room leader can clear the active story.
+ * RLS policies enforce this restriction at the database level.
+ *
+ * @param roomId - UUID of the room
+ * @throws DatabaseError if update fails or user is not leader
+ */
+export async function clearActiveStory(roomId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('stories')
+      .update({ is_active: false })
+      .eq('room_id', roomId);
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new DatabaseError(
+          'Only the room leader can clear active story',
+          error.code,
+          error
+        );
+      }
+      throw new DatabaseError(
+        `Failed to clear active story: ${error.message}`,
+        error.code,
+        error
+      );
+    }
+  } catch (err) {
+    if (err instanceof DatabaseError) throw err;
+    throw new DatabaseError(
+      'Unexpected error while clearing active story',
+      undefined,
+      err
+    );
+  }
+}
+
+/**
  * Get the active story in a room
  *
  * @param roomId - UUID of the room

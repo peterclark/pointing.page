@@ -86,13 +86,12 @@ export function CreateRoomDialog({
       // Save participant name to localStorage
       saveParticipantName(data.participantName);
 
-      // For MVP, all users are anonymous (userId = null)
-      // The participant_id from localStorage is for client-side tracking only
-      getParticipantId(); // Ensure participant_id exists in localStorage
-
       // Join the room as the first participant (becomes leader)
       // Pass null for userId since this is an anonymous user
-      await joinRoom(room.id, null, data.participantName);
+      const participant = await joinRoom(room.id, null, data.participantName);
+
+      // Save the participant's database ID to localStorage for future room access
+      localStorage.setItem('participant_id', participant.id);
 
       // Close dialog immediately
       onOpenChange(false);

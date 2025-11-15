@@ -1,0 +1,426 @@
+/**
+ * Tests for useRoomSubscription hook
+ *
+ * Focuses on:
+ * - Initial data fetching
+ * - Real-time subscription updates (INSERT, UPDATE)
+ * - Error handling
+ * - Cleanup on unmount
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
+import { useRoomSubscription } from './useRoomSubscription';
+import { supabase } from '@/lib/supabase/client';
+import type { Tables } from '@/lib/supabase/client';
+
+// Mock the supabase client
+vi.mock('@/lib/supabase/client', () => ({
+  supabase: {
+    from: vi.fn(),
+    channel: vi.fn(),
+    removeChannel: vi.fn(),
+  },
+}));
+
+describe('useRoomSubscription', () => {
+  let mockChannel: any;
+  let mockSubscriptionCallbacks: Record<string, any>;
+
+  beforeEach(() => {
+    // Reset mocks
+    vi.clearAllMocks();
+
+    // Setup mock subscription callbacks
+    mockSubscriptionCallbacks = {};
+
+    // Setup mock channel
+    mockChannel = {
+      on: vi.fn().mockImplementation((type, config, callback) => {
+        // Store callbacks by table name for testing
+        const key = `${config.table}-${config.event}`;
+        mockSubscriptionCallbacks[key] = callback;
+        return mockChannel;
+      }),
+      subscribe: vi.fn().mockImplementation((callback) => {
+        // Simulate successful subscription
+        setTimeout(() => callback('SUBSCRIBED'), 0);
+        return mockChannel;
+      }),
+    };
+
+    // Mock supabase.channel to return our mock channel
+    vi.mocked(supabase.channel).mockReturnValue(mockChannel);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should fetch initial data on mount', async () => {
+    const roomId = 'test-room-id';
+    const mockStories: Tables<'stories'>[] = [
+      {
+        id: 'story-1',
+        room_id: roomId,
+        title: 'Test Story',
+        description: 'Test Description',
+        is_active: true,
+        final_average: null,
+        created_at: '2025-01-01T00:00:00Z',
+      },
+    ];
+    const mockParticipants: Tables<'participants'>[] = [
+      {
+        id: 'participant-1',
+        room_id: roomId,
+        name: 'Alice',
+        is_leader: true,
+        is_active: true,
+        joined_at: '2025-01-01T00:00:00Z',
+        user_id: null,
+      },
+    ];
+    const mockVotes: Tables<'votes'>[] = [
+      {
+        id: 'vote-1',
+        story_id: 'story-1',
+        participant_id: 'participant-1',
+        point_value: '5',
+        sentiment: null,
+        is_revealed: false,
+        created_at: '2025-01-01T00:00:00Z',
+      },
+    ];
+
+    // Track number of calls to votes table
+    let votesCallCount = 0;
+
+    // Mock initial data fetch
+    const mockFrom = vi.fn().mockImplementation((table) => {
+      if (table === 'stories') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({
+            data: mockStories,
+            error: null,
+          }),
+        };
+      } else if (table === 'participants') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({
+            data: mockParticipants,
+            error: null,
+          }),
+        };
+      } else if (table === 'votes') {
+        votesCallCount++;
+        // First call is in Promise.all (with in filter for empty array)
+        // Second call is when active story is found
+        if (votesCallCount === 1) {
+          return {
+            select: vi.fn().mockReturnThis(),
+            in: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
+          };
+        } else {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({
+              data: mockVotes,
+              error: null,
+            }),
+          };
+        }
+      }
+
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+    });
+
+    vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+
+    // Initially loading
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.stories).toEqual([]);
+    expect(result.current.votes).toEqual([]);
+    expect(result.current.participants).toEqual([]);
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Check data is populated
+    expect(result.current.stories).toEqual(mockStories);
+    expect(result.current.participants).toEqual(mockParticipants);
+    expect(result.current.votes).toEqual(mockVotes);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('should handle INSERT events for participants', async () => {
+    const roomId = 'test-room-id';
+
+    // Mock initial empty data
+    const mockFrom = vi.fn().mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }));
+
+    vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Simulate INSERT event for participant
+    const newParticipant: Tables<'participants'> = {
+      id: 'participant-2',
+      room_id: roomId,
+      name: 'Bob',
+      is_leader: false,
+      is_active: true,
+      joined_at: '2025-01-01T01:00:00Z',
+      user_id: null,
+    };
+
+    const insertCallback = mockSubscriptionCallbacks['participants-*'];
+    expect(insertCallback).toBeDefined();
+
+    insertCallback({
+      eventType: 'INSERT',
+      new: newParticipant,
+      old: {},
+    });
+
+    // Wait for state update
+    await waitFor(() => {
+      expect(result.current.participants).toHaveLength(1);
+    });
+
+    expect(result.current.participants[0]).toEqual(newParticipant);
+  });
+
+  it('should handle UPDATE events for stories', async () => {
+    const roomId = 'test-room-id';
+    const mockStory: Tables<'stories'> = {
+      id: 'story-1',
+      room_id: roomId,
+      title: 'Original Title',
+      description: null,
+      is_active: false,
+      final_average: null,
+      created_at: '2025-01-01T00:00:00Z',
+    };
+
+    // Mock initial data with one story
+    const mockFrom = vi.fn().mockImplementation((table) => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: table === 'stories' ? [mockStory] : [],
+        error: null,
+      }),
+    }));
+
+    vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.stories[0].title).toBe('Original Title');
+
+    // Simulate UPDATE event for story
+    const updatedStory: Tables<'stories'> = {
+      ...mockStory,
+      title: 'Updated Title',
+      is_active: true,
+    };
+
+    const updateCallback = mockSubscriptionCallbacks['stories-*'];
+    expect(updateCallback).toBeDefined();
+
+    updateCallback({
+      eventType: 'UPDATE',
+      new: updatedStory,
+      old: mockStory,
+    });
+
+    // Wait for state update
+    await waitFor(() => {
+      expect(result.current.stories[0].title).toBe('Updated Title');
+    });
+
+    expect(result.current.stories[0].is_active).toBe(true);
+  });
+
+  it('should handle errors during initial data fetch', async () => {
+    const roomId = 'test-room-id';
+    const errorMessage = 'Database connection failed';
+
+    // Mock error response
+    const mockFrom = vi.fn().mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: errorMessage },
+      }),
+    }));
+
+    vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+
+    // Wait for error state
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.error?.message).toContain('Failed to fetch');
+  });
+
+  it('should cleanup subscription on unmount', async () => {
+    const roomId = 'test-room-id';
+
+    // Mock initial empty data
+    const mockFrom = vi.fn().mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }));
+
+    vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+    const { unmount } = renderHook(() => useRoomSubscription(roomId));
+
+    // Wait for subscription to be established
+    await waitFor(() => {
+      expect(mockChannel.subscribe).toHaveBeenCalled();
+    });
+
+    // Unmount the hook
+    unmount();
+
+    // Verify removeChannel was called
+    expect(supabase.removeChannel).toHaveBeenCalledWith(mockChannel);
+  });
+
+  it('should handle subscription connection errors', async () => {
+    const roomId = 'test-room-id';
+
+    // Mock initial data
+    const mockFrom = vi.fn().mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }));
+
+    vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+    // Mock subscription error
+    mockChannel.subscribe = vi.fn().mockImplementation((callback) => {
+      setTimeout(() => callback('CHANNEL_ERROR', new Error('Connection failed')), 0);
+      return mockChannel;
+    });
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+
+    // Wait for error to be set
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    });
+
+    expect(result.current.error?.message).toContain('Subscription error');
+  });
+
+  it('should handle DELETE events for participants', async () => {
+    const roomId = 'test-room-id';
+    const mockParticipant: Tables<'participants'> = {
+      id: 'participant-1',
+      room_id: roomId,
+      name: 'Alice',
+      is_leader: true,
+      is_active: true,
+      joined_at: '2025-01-01T00:00:00Z',
+      user_id: null,
+    };
+
+    // Mock initial data with one participant
+    const mockFrom = vi.fn().mockImplementation((table) => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: table === 'participants' ? [mockParticipant] : [],
+        error: null,
+      }),
+    }));
+
+    vi.mocked(supabase.from).mockImplementation(mockFrom);
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.participants).toHaveLength(1);
+
+    // Simulate DELETE event for participant
+    const deleteCallback = mockSubscriptionCallbacks['participants-*'];
+    expect(deleteCallback).toBeDefined();
+
+    deleteCallback({
+      eventType: 'DELETE',
+      new: {},
+      old: mockParticipant,
+    });
+
+    // Wait for state update
+    await waitFor(() => {
+      expect(result.current.participants).toHaveLength(0);
+    });
+  });
+
+  it('should handle empty roomId gracefully', () => {
+    const { result } = renderHook(() => useRoomSubscription(''));
+
+    // Should not be loading and have no error
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeNull();
+    expect(result.current.stories).toEqual([]);
+    expect(result.current.votes).toEqual([]);
+    expect(result.current.participants).toEqual([]);
+
+    // Should not create a subscription
+    expect(supabase.channel).not.toHaveBeenCalled();
+  });
+});
