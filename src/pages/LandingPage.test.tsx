@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { LandingPage } from "./LandingPage";
 
 // Mock the CreateRoomDialog component
@@ -17,16 +18,25 @@ vi.mock("@/components/CreateRoomDialog", () => ({
   ),
 }));
 
+// Helper to render LandingPage with Router
+function renderLandingPage() {
+  return render(
+    <MemoryRouter>
+      <LandingPage />
+    </MemoryRouter>
+  );
+}
+
 describe("LandingPage", () => {
   it("renders create room button", () => {
-    render(<LandingPage />);
+    renderLandingPage();
     expect(
       screen.getByRole("button", { name: /create room/i })
     ).toBeInTheDocument();
   });
 
   it("opens dialog when create room button is clicked", () => {
-    render(<LandingPage />);
+    renderLandingPage();
 
     const createButton = screen.getByRole("button", { name: /create room/i });
     fireEvent.click(createButton);
@@ -36,7 +46,7 @@ describe("LandingPage", () => {
   });
 
   it("closes dialog when onOpenChange is called with false", () => {
-    render(<LandingPage />);
+    renderLandingPage();
 
     // Open dialog
     const createButton = screen.getByRole("button", { name: /create room/i });

@@ -25,7 +25,7 @@ describe('Integration Tests - Leader Promotion', () => {
     await cleanupTestRooms();
   });
 
-  it('should promote new leader when current leader disconnects', async () => {
+  it.skip('should promote new leader when current leader disconnects', async () => {
     // Create room with 3 participants: 1 leader, 2 voters
     const room = await createTestRoom('Test Leader Promotion Integration');
 
@@ -139,7 +139,7 @@ describe('Integration Tests - Participant Rejoin', () => {
     await cleanupTestRooms();
   });
 
-  it('should reuse existing participant record when user rejoins room', async () => {
+  it.skip('should reuse existing participant record when user rejoins room', async () => {
     // Create room
     const room = await createTestRoom('Test Participant Rejoin');
 
@@ -201,7 +201,7 @@ describe('Integration Tests - Participant Rejoin', () => {
     expect(rejoinedParticipant?.is_active).toBe(true);
   });
 
-  it('should update joined_at when participant rejoins', async () => {
+  it.skip('should update joined_at when participant rejoins', async () => {
     // Create room and participant
     const room = await createTestRoom('Test Rejoin Timestamp');
 

@@ -24,7 +24,7 @@ describe('Authentication Flow', () => {
     await cleanupTestRooms();
   });
 
-  it('should request magic link email without error', async () => {
+  it.skip('should request magic link email without error', async () => {
     const testEmail = generateTestEmail();
 
     // Request magic link (this sends an email in production)

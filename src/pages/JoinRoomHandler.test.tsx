@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { JoinRoomHandler } from "./JoinRoomHandler";
 import * as queries from "@/lib/supabase/queries";
-import { toast } from "sonner";
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -11,11 +10,8 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    error: vi.fn(),
-  },
-}));
+// Note: JoinRoomHandler doesn't use toast directly
+// It passes errors via navigate state to LandingPage
 
 vi.mock("@/lib/supabase/queries", () => ({
   getRoomByCode: vi.fn(),
@@ -48,14 +44,15 @@ describe("JoinRoomHandler", () => {
   });
 
   it("navigates to home with error when room not found", async () => {
-    vi.mocked(useParams).mockReturnValue({ roomCode: "invalid1" });
+    vi.mocked(useParams).mockReturnValue({ roomCode: "ABCD1234" });
     vi.mocked(queries.getRoomByCode).mockResolvedValue(null);
 
     render(<JoinRoomHandler />);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Room not found");
-      expect(mockNavigate).toHaveBeenCalledWith("/");
+      expect(mockNavigate).toHaveBeenCalledWith("/", {
+        state: { error: "Room not found" },
+      });
     });
   });
 
@@ -65,8 +62,9 @@ describe("JoinRoomHandler", () => {
     render(<JoinRoomHandler />);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Invalid room code format");
-      expect(mockNavigate).toHaveBeenCalledWith("/");
+      expect(mockNavigate).toHaveBeenCalledWith("/", {
+        state: { error: "Invalid room code format" },
+      });
     });
   });
 
@@ -79,10 +77,9 @@ describe("JoinRoomHandler", () => {
     render(<JoinRoomHandler />);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "Failed to join room. Please try again."
-      );
-      expect(mockNavigate).toHaveBeenCalledWith("/");
+      expect(mockNavigate).toHaveBeenCalledWith("/", {
+        state: { error: "Failed to join room. Please try again." },
+      });
     });
   });
 });

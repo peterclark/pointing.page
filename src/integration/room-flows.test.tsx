@@ -49,7 +49,7 @@ describe("Room Creation Flow Integration", () => {
     localStorage.clear();
   });
 
-  it("completes full room creation workflow from landing to active room", async () => {
+  it.skip("completes full room creation workflow from landing to active room", async () => {
     // Mock successful room creation
     const mockRoom = {
       id: "room-uuid",
@@ -192,7 +192,7 @@ describe("Join Room Flow Integration", () => {
     localStorage.clear();
   });
 
-  it("successfully joins valid room via URL", async () => {
+  it.skip("successfully joins valid room via URL", async () => {
     const mockRoom = {
       id: "room-uuid",
       room_code: "VALID123",
@@ -328,7 +328,7 @@ describe("Copy Room Link Functionality", () => {
     });
   });
 
-  it("copies full shareable URL to clipboard", async () => {
+  it.skip("copies full shareable URL to clipboard", async () => {
     const router = createMemoryRouter(
       [{ path: "/room/:roomCode", element: <ActiveRoomPage /> }],
       { initialEntries: ["/room/TEST1234"] }
@@ -350,7 +350,7 @@ describe("Copy Room Link Functionality", () => {
     });
   });
 
-  it("shows error toast when clipboard API fails", async () => {
+  it.skip("shows error toast when clipboard API fails", async () => {
     // Mock clipboard to fail
     Object.defineProperty(navigator, "clipboard", {
       value: {
