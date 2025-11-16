@@ -30,7 +30,7 @@ export function LandingPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-6">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Story Pointer</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Pointing.page</h1>
           <p className="mt-2 text-muted-foreground">
             Create a room to start estimating stories with your team
           </p>
@@ -45,10 +45,7 @@ export function LandingPage() {
         </Button>
       </div>
 
-      <CreateRoomDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-      />
+      <CreateRoomDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </div>
   );
 }
