@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'supabase/migrations/**'
+      - "supabase/migrations/**"
 
 jobs:
   deploy-migrations:
@@ -18,10 +18,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install Supabase CLI
-        run: npm install -g supabase
+        run: |
+          curl -sL https://github.com/supabase/cli/releases/latest/download/supabase-cli-linux-amd64 -o /usr/local/bin/supabase
+          chmod +x /usr/local/bin/supabase
 
       - name: Link to Supabase project
         env:
