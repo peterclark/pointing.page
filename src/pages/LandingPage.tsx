@@ -60,6 +60,7 @@ const tagline = [
   },
   {
     text: "the",
+    className: "font-light",
   },
   {
     text: "power",
@@ -67,6 +68,7 @@ const tagline = [
   },
   {
     text: "of",
+    className: "font-light",
   },
   {
     text: "collaborative",
