@@ -18,6 +18,28 @@ vi.mock("sonner", () => ({
   Toaster: () => null,
 }));
 
+// Mock the WavyBackground component (uses canvas which doesn't work in jsdom)
+vi.mock("@/components/ui/wavy-background", () => ({
+  WavyBackground: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-testid="wavy-background" className={className}>
+      {children}
+    </div>
+  ),
+}));
+
+// Mock the TypewriterEffectSmooth component
+vi.mock("@/components/ui/typewriter-effect", () => ({
+  TypewriterEffectSmooth: ({ words }: { words: Array<{ text: string; className?: string }> }) => (
+    <div data-testid="typewriter-effect">
+      {words.map((word, idx) => (
+        <span key={idx} className={word.className}>
+          {word.text}{" "}
+        </span>
+      ))}
+    </div>
+  ),
+}));
+
 /**
  * Integration Tests for Room Creation & Management Feature
  *
@@ -84,10 +106,10 @@ describe("Room Creation Flow Integration", () => {
 
     render(<RouterProvider router={router} />);
 
-    // Step 1: User lands on page and clicks "Create Room"
-    const createButton = screen.getByRole("button", { name: /create room/i });
-    expect(createButton).toBeInTheDocument();
-    fireEvent.click(createButton);
+    // Step 1: User lands on page and clicks "Enter"
+    const enterButton = screen.getByRole("button", { name: /enter/i });
+    expect(enterButton).toBeInTheDocument();
+    fireEvent.click(enterButton);
 
     // Step 2: Dialog opens with pre-filled room name
     await waitFor(() => {
@@ -160,8 +182,8 @@ describe("Room Creation Flow Integration", () => {
     render(<RouterProvider router={router} />);
 
     // Open dialog
-    const createButton = screen.getByRole("button", { name: /create room/i });
-    fireEvent.click(createButton);
+    const enterButton = screen.getByRole("button", { name: /enter/i });
+    fireEvent.click(enterButton);
 
     await waitFor(() => {
       expect(screen.getByText("Create a Room")).toBeInTheDocument();
@@ -244,7 +266,7 @@ describe("Join Room Flow Integration", () => {
 
     // Should show landing page
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /create room/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /enter/i })).toBeInTheDocument();
     });
   });
 });
@@ -303,8 +325,8 @@ describe("localStorage Persistence", () => {
     render(<RouterProvider router={router} />);
 
     // Open dialog
-    const createButton = screen.getByRole("button", { name: /create room/i });
-    fireEvent.click(createButton);
+    const enterButton = screen.getByRole("button", { name: /enter/i });
+    fireEvent.click(enterButton);
 
     // Verify participant name is pre-filled
     await waitFor(() => {
@@ -393,8 +415,8 @@ describe("Form Validation", () => {
 
     render(<RouterProvider router={router} />);
 
-    const createButton = screen.getByRole("button", { name: /create room/i });
-    fireEvent.click(createButton);
+    const enterButton = screen.getByRole("button", { name: /enter/i });
+    fireEvent.click(enterButton);
 
     await waitFor(() => {
       expect(screen.getByText("Create a Room")).toBeInTheDocument();

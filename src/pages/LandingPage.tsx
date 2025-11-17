@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CreateRoomDialog } from "@/components/CreateRoomDialog";
 import { toast } from "sonner";
+import { WavyBackground } from "@/components/ui/wavy-background";
+import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
 
 /**
  * Landing Page Component
@@ -27,25 +29,56 @@ export function LandingPage() {
   }, [location]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Pointing.page</h1>
-          <p className="mt-2 text-muted-foreground">
-            Create a room to start estimating stories with your team
-          </p>
-        </div>
-
+    <div>
+      <WavyBackground className="mx-auto flex flex-col">
+        <p className="text-2xl md:text-4xl lg:text-7xl text-fuchsia-400 font-bold inter-var text-center">
+          Pointing
+          <span className="text-base md:text-2xl lg:text-3xl font-light">
+            .page
+          </span>
+        </p>
+        <TypewriterEffectSmooth words={tagline} />
         <Button
           size="lg"
+          variant="outline"
           onClick={() => setIsDialogOpen(true)}
-          className="min-w-[200px]"
+          className="h-15 text-2xl text-white/75 mt-50 min-w-[400px] self-center rounded-full border-2"
         >
-          Create Room
+          Enter
         </Button>
-      </div>
+      </WavyBackground>
 
       <CreateRoomDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </div>
   );
 }
+
+const tagline = [
+  {
+    text: "Harness",
+    // className: "text-fuchsia-500 dark:text-fuchsia-400",
+  },
+  {
+    text: "the",
+    className: "font-light",
+  },
+  {
+    text: "power",
+    // className: "text-cyan-500 dark:text-cyan-400",
+  },
+  {
+    text: "of",
+    className: "font-light",
+  },
+  {
+    text: "collaborative",
+    // className: "text-pink-500 dark:text-pink-400",
+  },
+  {
+    text: "story",
+  },
+  {
+    text: "pointing.",
+    className: "text-blue-500 dark:text-blue-400",
+  },
+];

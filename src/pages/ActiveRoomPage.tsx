@@ -5,7 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatRoomCode, copyToClipboard, filterVisibleVotes, getParticipantName, saveParticipantName } from "@/lib/utils";
+import {
+  formatRoomCode,
+  copyToClipboard,
+  filterVisibleVotes,
+  getParticipantName,
+  saveParticipantName,
+} from "@/lib/utils";
 import { getRoomByCode, joinRoom } from "@/lib/supabase/queries";
 import type { Tables } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -15,6 +21,7 @@ import { VotingButtons } from "@/components/VotingButtons";
 import { ParticipantStatus } from "@/components/ParticipantStatus";
 import { VoteResults } from "@/components/VoteResults";
 import { LeaderControls } from "@/components/LeaderControls";
+import { ModeToggle } from "@/components/mode-toggle";
 
 /**
  * Active Room Page Component
@@ -48,7 +55,7 @@ export function ActiveRoomPage() {
 
   useEffect(() => {
     // Get the participant ID from localStorage, or the generated one
-    const id = localStorage.getItem('participant_id') || "";
+    const id = localStorage.getItem("participant_id") || "";
     setParticipantId(id);
   }, []); // Only run once on mount
 
@@ -81,7 +88,9 @@ export function ActiveRoomPage() {
         setRoom(roomData);
       } catch (error) {
         console.error("Failed to fetch room:", error);
-        navigate("/", { state: { error: "Failed to load room. Please try again." } });
+        navigate("/", {
+          state: { error: "Failed to load room. Please try again." },
+        });
       } finally {
         setIsLoadingRoom(false);
       }
@@ -112,27 +121,46 @@ export function ActiveRoomPage() {
 
   // Debug logging
   useEffect(() => {
-    console.log('[ActiveRoomPage] Participant lookup:', {
+    console.log("[ActiveRoomPage] Participant lookup:", {
       participantId,
       participantsCount: participants.length,
-      participantIds: participants.map(p => p.id),
+      participantIds: participants.map((p) => p.id),
       currentParticipant: currentParticipant?.id,
       isLoadingRoom,
       isLoadingSubscription,
     });
-  }, [participantId, participants, currentParticipant, isLoadingRoom, isLoadingSubscription]);
+  }, [
+    participantId,
+    participants,
+    currentParticipant,
+    isLoadingRoom,
+    isLoadingSubscription,
+  ]);
 
   // Check if participant is in the room
   useEffect(() => {
-    if (!isLoadingRoom && !isLoadingSubscription && room && !currentParticipant) {
+    if (
+      !isLoadingRoom &&
+      !isLoadingSubscription &&
+      room &&
+      !currentParticipant
+    ) {
       // Participant not found in room or no participant ID - show join form
-      console.log('[ActiveRoomPage] Showing join form - participant not found or no participant ID');
+      console.log(
+        "[ActiveRoomPage] Showing join form - participant not found or no participant ID"
+      );
       setShowJoinForm(true);
     } else if (currentParticipant) {
       // Participant found - hide join form
       setShowJoinForm(false);
     }
-  }, [isLoadingRoom, isLoadingSubscription, room, currentParticipant, participantId]);
+  }, [
+    isLoadingRoom,
+    isLoadingSubscription,
+    room,
+    currentParticipant,
+    participantId,
+  ]);
 
   // Determine leader status
   const isLeader = currentParticipant?.is_leader ?? false;
@@ -158,7 +186,9 @@ export function ActiveRoomPage() {
 
   // Get current participant's vote
   const currentVote = useMemo(
-    () => visibleVotes.find((v) => v.participant_id === participantId)?.point_value || null,
+    () =>
+      visibleVotes.find((v) => v.participant_id === participantId)
+        ?.point_value || null,
     [visibleVotes, participantId]
   );
 
@@ -172,7 +202,7 @@ export function ActiveRoomPage() {
       const participant = await joinRoom(room.id, null, joinName.trim());
 
       // Save participant ID and name to localStorage
-      localStorage.setItem('participant_id', participant.id);
+      localStorage.setItem("participant_id", participant.id);
       saveParticipantName(joinName.trim());
 
       // Update the local participant ID state
@@ -216,7 +246,9 @@ export function ActiveRoomPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground text-lg">Loading room...</p>
-          <p className="text-muted-foreground text-sm mt-2">Connecting to real-time updates...</p>
+          <p className="text-muted-foreground text-sm mt-2">
+            Connecting to real-time updates...
+          </p>
         </div>
       </div>
     );
@@ -331,16 +363,18 @@ export function ActiveRoomPage() {
                   {formattedCode}
                 </p>
               </div>
-
-              <Button
-                onClick={handleCopyRoomCode}
-                variant="outline"
-                size="lg"
-                className="gap-2"
-              >
-                <ClipboardDocumentIcon className="h-5 w-5" />
-                Copy Link
-              </Button>
+              <div className="flex gap-4 items-center">
+                <Button
+                  onClick={handleCopyRoomCode}
+                  variant="outline"
+                  size="lg"
+                  className="gap-2"
+                >
+                  <ClipboardDocumentIcon className="h-5 w-5" />
+                  Copy Link
+                </Button>
+                <ModeToggle />
+              </div>
             </div>
           </div>
         </Card>
@@ -365,7 +399,9 @@ export function ActiveRoomPage() {
                 // Non-leaders see waiting message
                 <Card className="p-8">
                   <div className="text-center text-muted-foreground space-y-2">
-                    <p className="text-lg font-medium">Waiting for leader to start voting</p>
+                    <p className="text-lg font-medium">
+                      Waiting for leader to start voting
+                    </p>
                     <p className="text-sm">
                       The leader will create a story for the team to estimate
                     </p>
@@ -382,7 +418,9 @@ export function ActiveRoomPage() {
               <Card className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <h2 className="text-2xl font-semibold">{activeStory.title}</h2>
+                    <h2 className="text-2xl font-semibold">
+                      {activeStory.title}
+                    </h2>
                     {activeStory.description && (
                       <p className="text-muted-foreground mt-2">
                         {activeStory.description}

@@ -18,6 +18,28 @@ vi.mock("@/components/CreateRoomDialog", () => ({
   ),
 }));
 
+// Mock the WavyBackground component (uses canvas which doesn't work in jsdom)
+vi.mock("@/components/ui/wavy-background", () => ({
+  WavyBackground: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-testid="wavy-background" className={className}>
+      {children}
+    </div>
+  ),
+}));
+
+// Mock the TypewriterEffectSmooth component
+vi.mock("@/components/ui/typewriter-effect", () => ({
+  TypewriterEffectSmooth: ({ words }: { words: Array<{ text: string; className?: string }> }) => (
+    <div data-testid="typewriter-effect">
+      {words.map((word, idx) => (
+        <span key={idx} className={word.className}>
+          {word.text}{" "}
+        </span>
+      ))}
+    </div>
+  ),
+}));
+
 // Helper to render LandingPage with Router
 function renderLandingPage() {
   return render(
@@ -28,18 +50,18 @@ function renderLandingPage() {
 }
 
 describe("LandingPage", () => {
-  it("renders create room button", () => {
+  it("renders enter button", () => {
     renderLandingPage();
     expect(
-      screen.getByRole("button", { name: /create room/i })
+      screen.getByRole("button", { name: /enter/i })
     ).toBeInTheDocument();
   });
 
-  it("opens dialog when create room button is clicked", () => {
+  it("opens dialog when enter button is clicked", () => {
     renderLandingPage();
 
-    const createButton = screen.getByRole("button", { name: /create room/i });
-    fireEvent.click(createButton);
+    const enterButton = screen.getByRole("button", { name: /enter/i });
+    fireEvent.click(enterButton);
 
     const dialog = screen.getByTestId("create-room-dialog");
     expect(dialog).toHaveAttribute("data-open", "true");
@@ -49,8 +71,8 @@ describe("LandingPage", () => {
     renderLandingPage();
 
     // Open dialog
-    const createButton = screen.getByRole("button", { name: /create room/i });
-    fireEvent.click(createButton);
+    const enterButton = screen.getByRole("button", { name: /enter/i });
+    fireEvent.click(enterButton);
 
     // Close dialog
     const closeButton = screen.getByRole("button", { name: /close dialog/i });
