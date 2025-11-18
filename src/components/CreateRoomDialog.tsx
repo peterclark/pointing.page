@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -18,11 +17,14 @@ import {
   saveParticipantName,
 } from "@/lib/utils";
 import { createRoom, joinRoom } from "@/lib/supabase/queries";
-import { toast } from "sonner";
 
 interface CreateRoomDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRoomCreationStart: (roomName: string) => void;
+  onRoomCreationSuccess: (roomCode: string) => void;
+  onRoomCreationError: (error: string) => void;
+  preservedRoomName: string | null;
 }
 
 /**
@@ -35,13 +37,17 @@ interface CreateRoomDialogProps {
  * - Point scale selection (Fibonacci or T-shirt)
  * - Point scale buttons disabled until participant name is entered
  * - Form validation using zod schemas
- * - Automatic room creation and navigation on submission
+ * - Automatic room creation with loading screen overlay
+ * - Form preservation on error (room name only, point scale resets)
  */
 export function CreateRoomDialog({
   open,
   onOpenChange,
+  onRoomCreationStart,
+  onRoomCreationSuccess,
+  onRoomCreationError,
+  preservedRoomName,
 }: CreateRoomDialogProps) {
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -68,15 +74,18 @@ export function CreateRoomDialog({
   useEffect(() => {
     if (open) {
       reset({
-        roomName: generateRoomName(),
+        roomName: preservedRoomName || generateRoomName(),
         participantName: getParticipantName() || "",
-        pointScale: undefined,
+        pointScale: undefined, // Always reset point scale
       });
     }
-  }, [open, reset]);
+  }, [open, reset, preservedRoomName]);
 
   const onSubmit = async (data: CreateRoomFormData) => {
     setIsSubmitting(true);
+
+    // Notify parent that room creation has started
+    onRoomCreationStart(data.roomName);
 
     try {
       // Create the room
@@ -92,14 +101,11 @@ export function CreateRoomDialog({
       // Save the participant's database ID to localStorage for future room access
       localStorage.setItem('participant_id', participant.id);
 
-      // Close dialog immediately
-      onOpenChange(false);
-
-      // Navigate to the room
-      navigate(`/room/${room.room_code}`);
+      // Notify parent of success with room code
+      onRoomCreationSuccess(room.room_code);
     } catch (error) {
       console.error("Failed to create room:", error);
-      toast.error("Failed to create room. Please try again.");
+      onRoomCreationError("Failed to create room. Please try again.");
       setIsSubmitting(false);
     }
   };

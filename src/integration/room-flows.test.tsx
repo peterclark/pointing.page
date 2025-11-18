@@ -162,11 +162,14 @@ describe("Room Creation Flow Integration", () => {
 
     render(<RouterProvider router={router} />);
 
+    // LoadingScreen should display with error message
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Invalid room code format");
-      // Should not call getRoomByCode for invalid format
-      expect(queries.getRoomByCode).not.toHaveBeenCalled();
+      expect(screen.getByText("Joining your room...")).toBeInTheDocument();
+      expect(screen.getByText("Invalid room code format")).toBeInTheDocument();
     });
+
+    // Should not call getRoomByCode for invalid format
+    expect(queries.getRoomByCode).not.toHaveBeenCalled();
   });
 
   it("handles network errors gracefully during room creation", async () => {
@@ -255,18 +258,24 @@ describe("Join Room Flow Integration", () => {
         { path: "/", element: <LandingPage /> },
         { path: "/join/:roomCode", element: <JoinRoomHandler /> },
       ],
-      { initialEntries: ["/join/notfound"] }
+      { initialEntries: ["/join/NOTFOUND"] } // Valid format but room doesn't exist
     );
 
     render(<RouterProvider router={router} />);
 
+    // LoadingScreen should display
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Room not found");
+      expect(screen.getByText("Joining your room...")).toBeInTheDocument();
     });
 
-    // Should show landing page
+    // Room validation should have been called
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /enter/i })).toBeInTheDocument();
+      expect(queries.getRoomByCode).toHaveBeenCalledWith("NOTFOUND");
+    });
+
+    // Error should display in LoadingScreen
+    await waitFor(() => {
+      expect(screen.getByText("Room not found")).toBeInTheDocument();
     });
   });
 });
