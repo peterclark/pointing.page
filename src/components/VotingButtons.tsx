@@ -63,7 +63,7 @@ export function VotingButtons({
   };
 
   return (
-    <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+    <div className="flex justify-around gap-2 flex-wrap">
       {pointValues.map((value) => {
         const isSelected = displayedVote === value;
         const isDisabled = isRevealed || isSubmitting;
@@ -76,7 +76,7 @@ export function VotingButtons({
             variant={isSelected ? "default" : "outline"}
             disabled={isDisabled}
             onClick={() => handleVoteClick(value)}
-            className={`aspect-square text-xl font-bold ${
+            className={`flex-1 aspect-square text-xl font-bold ${
               isSelected ? "ring-2 ring-primary" : ""
             } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >

@@ -70,6 +70,12 @@ export function StoryForm({ roomId, onStoryCreated }: StoryFormProps) {
 
   return (
     <Card className="p-6">
+      <div className="text-center sm:text-left">
+        <h2 className="text-2xl font-semibold">Create a Story</h2>
+        <p className="text-muted-foreground mt-1">
+          Start a new voting session by adding a story
+        </p>
+      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Title Input */}
         <div className="space-y-2">
@@ -98,7 +104,7 @@ export function StoryForm({ roomId, onStoryCreated }: StoryFormProps) {
             rows={4}
             onKeyDown={(e) => {
               // Submit form on Cmd+Enter or Ctrl+Enter
-              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                 e.preventDefault();
                 submitButtonRef.current?.click();
               }

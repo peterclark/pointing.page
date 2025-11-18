@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CreateRoomDialog } from "@/components/CreateRoomDialog";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 import { WavyBackground } from "@/components/ui/wavy-background";
 import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
@@ -12,11 +13,21 @@ import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
  * Displays a centered "Create Room" button that opens the room creation dialog.
  * This is the entry point for users who want to start a new story pointing session.
  * Also displays error toasts if navigated here with an error message.
+ * Manages loading state for room creation flow with LoadingScreen overlay.
  */
 export function LandingPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dbOperationComplete, setDbOperationComplete] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [preservedRoomName, setPreservedRoomName] = useState<string | null>(
+    null
+  );
+
   const location = useLocation();
+  const navigate = useNavigate();
   const hasShownToast = useRef(false);
+  const roomCodeRef = useRef<string | null>(null);
 
   // Display error toast if navigated here with error state
   useEffect(() => {
@@ -28,27 +39,93 @@ export function LandingPage() {
     }
   }, [location]);
 
-  return (
-    <div>
-      <WavyBackground className="mx-auto flex flex-col">
-        <p className="text-2xl md:text-4xl lg:text-7xl text-fuchsia-400 font-bold inter-var text-center">
-          Pointing
-          <span className="text-base md:text-2xl lg:text-3xl font-light">
-            .page
-          </span>
-        </p>
-        <TypewriterEffectSmooth words={tagline} />
-        <Button
-          size="lg"
-          variant="outline"
-          onClick={() => setIsDialogOpen(true)}
-          className="h-15 text-2xl text-white/75 mt-50 min-w-[400px] self-center rounded-full border-2"
-        >
-          Enter
-        </Button>
-      </WavyBackground>
+  // Handle loading screen completion - navigate to room
+  const handleLoadingComplete = useCallback(() => {
+    if (roomCodeRef.current) {
+      navigate(`/room/${roomCodeRef.current}`);
+    }
+  }, [navigate]);
 
-      <CreateRoomDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+  // Handle room creation start
+  const handleRoomCreationStart = useCallback((roomName: string) => {
+    setPreservedRoomName(roomName);
+    setIsDialogOpen(false);
+    setIsLoading(true);
+    setDbOperationComplete(false);
+    setLoadingError(null);
+  }, []);
+
+  // Handle room creation success
+  const handleRoomCreationSuccess = useCallback((roomCode: string) => {
+    roomCodeRef.current = roomCode;
+    setDbOperationComplete(true);
+    setPreservedRoomName(null);
+  }, []);
+
+  // Handle room creation error
+  const handleRoomCreationError = useCallback((error: string) => {
+    setIsLoading(false);
+    setDbOperationComplete(false);
+    setLoadingError(error);
+    toast.error(error);
+    // Reopen dialog with preserved room name
+    setIsDialogOpen(true);
+  }, []);
+
+  // Reset error when dialog opens
+  const handleDialogOpenChange = useCallback(
+    (open: boolean) => {
+      setIsDialogOpen(open);
+      if (open) {
+        setLoadingError(null);
+      } else {
+        // If closing without loading, clear preserved name
+        if (!isLoading) {
+          setPreservedRoomName(null);
+        }
+      }
+    },
+    [isLoading]
+  );
+
+  return (
+    <div className="bg-black">
+      {!isDialogOpen && (
+        <WavyBackground className="mx-auto flex flex-col">
+          <p className="text-5xl md:text-6xl lg:text-7xl text-fuchsia-400 font-bold inter-var text-center">
+            Pointing
+            <span className="text-lg md:text-2xl lg:text-3xl font-light">
+              .page
+            </span>
+          </p>
+          <TypewriterEffectSmooth words={tagline} />
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => setIsDialogOpen(true)}
+            className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 min-w-[400px] self-center rounded-full border-2"
+          >
+            Enter
+          </Button>
+        </WavyBackground>
+      )}
+
+      <CreateRoomDialog
+        open={isDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        onRoomCreationStart={handleRoomCreationStart}
+        onRoomCreationSuccess={handleRoomCreationSuccess}
+        onRoomCreationError={handleRoomCreationError}
+        preservedRoomName={preservedRoomName}
+      />
+
+      <LoadingScreen
+        isCreating={true}
+        isLoading={isLoading}
+        dbOperationComplete={dbOperationComplete}
+        onComplete={handleLoadingComplete}
+        error={loadingError}
+      />
     </div>
   );
 }
@@ -56,26 +133,27 @@ export function LandingPage() {
 const tagline = [
   {
     text: "Harness",
-    // className: "text-fuchsia-500 dark:text-fuchsia-400",
+    className: "text-white/90",
   },
   {
     text: "the",
-    className: "font-light",
+    className: "font-light text-white/90",
   },
   {
     text: "power",
-    // className: "text-cyan-500 dark:text-cyan-400",
+    className: "text-white/90",
   },
   {
     text: "of",
-    className: "font-light",
+    className: "font-light text-white/90",
   },
   {
     text: "collaborative",
-    // className: "text-pink-500 dark:text-pink-400",
+    className: "text-white/90",
   },
   {
     text: "story",
+    className: "text-white/90",
   },
   {
     text: "pointing.",
