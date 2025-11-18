@@ -90,23 +90,25 @@ export function LandingPage() {
 
   return (
     <div className="bg-black">
-      <WavyBackground className="mx-auto flex flex-col">
-        <p className="text-2xl md:text-4xl lg:text-7xl text-fuchsia-400 font-bold inter-var text-center">
-          Pointing
-          <span className="text-base md:text-2xl lg:text-3xl font-light">
-            .page
-          </span>
-        </p>
-        <TypewriterEffectSmooth words={tagline} />
-        <Button
-          size="lg"
-          variant="outline"
-          onClick={() => setIsDialogOpen(true)}
-          className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 min-w-[400px] self-center rounded-full border-2"
-        >
-          Enter
-        </Button>
-      </WavyBackground>
+      {!isDialogOpen && (
+        <WavyBackground className="mx-auto flex flex-col">
+          <p className="text-5xl md:text-6xl lg:text-7xl text-fuchsia-400 font-bold inter-var text-center">
+            Pointing
+            <span className="text-lg md:text-2xl lg:text-3xl font-light">
+              .page
+            </span>
+          </p>
+          <TypewriterEffectSmooth words={tagline} />
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => setIsDialogOpen(true)}
+            className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 min-w-[400px] self-center rounded-full border-2"
+          >
+            Enter
+          </Button>
+        </WavyBackground>
+      )}
 
       <CreateRoomDialog
         open={isDialogOpen}

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { revealVotes, clearActiveStory } from "@/lib/supabase/queries";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { ChevronDoubleRightIcon } from "@heroicons/react/24/outline";
 
 interface LeaderControlsProps {
   roomId: string;
@@ -83,7 +84,7 @@ export function LeaderControls({
           onClick={handleRevealVotes}
           disabled={isRevealing}
           size="lg"
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto bg-fuchsia-500 hover:bg-fuchsia-600"
           variant="default"
         >
           {isRevealing && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -95,11 +96,11 @@ export function LeaderControls({
           onClick={handleNextStory}
           disabled={isClearing}
           size="lg"
-          className="w-full sm:w-auto"
-          variant="secondary"
+          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600"
         >
           {isClearing && <Loader2 className="h-4 w-4 animate-spin" />}
           Next Story
+          <ChevronDoubleRightIcon />
         </Button>
       )}
     </div>

@@ -78,8 +78,8 @@ describe("VoteResults", () => {
       // Check for consensus label
       expect(screen.getByText("Consensus")).toBeInTheDocument();
 
-      // Check for consensus value in the consensus card (text-4xl)
-      const consensusCard = container.querySelector(".text-4xl");
+      // Check for consensus value in the consensus card (text-6xl)
+      const consensusCard = container.querySelector(".text-6xl");
       expect(consensusCard).toHaveTextContent("5");
     });
 
@@ -123,7 +123,7 @@ describe("VoteResults", () => {
       );
 
       // Average of 3, 5, 8 is 5.3
-      const consensusCard = container.querySelector(".text-4xl");
+      const consensusCard = container.querySelector(".text-6xl");
       expect(consensusCard).toHaveTextContent("5.3");
       expect(screen.getByText("Average")).toBeInTheDocument();
     });
@@ -269,8 +269,8 @@ describe("VoteResults", () => {
       // Check for consensus label
       expect(screen.getByText("Consensus")).toBeInTheDocument();
 
-      // Check for consensus value in the consensus card (text-4xl)
-      const consensusCard = container.querySelector(".text-4xl");
+      // Check for consensus value in the consensus card (text-6xl)
+      const consensusCard = container.querySelector(".text-6xl");
       expect(consensusCard).toHaveTextContent("M");
     });
 
@@ -314,7 +314,7 @@ describe("VoteResults", () => {
       );
 
       // Mode is M (appears twice)
-      const consensusCard = container.querySelector(".text-4xl");
+      const consensusCard = container.querySelector(".text-6xl");
       expect(consensusCard).toHaveTextContent("M");
       expect(screen.getByText("Most Common")).toBeInTheDocument();
     });
@@ -444,8 +444,8 @@ describe("VoteResults", () => {
         />
       );
 
-      // Get all individual vote cards (text-3xl elements, not the consensus text-4xl)
-      const voteCards = container.querySelectorAll(".text-3xl");
+      // Get all individual vote cards (text-3xl within truncate containers, not the consensus)
+      const voteCards = container.querySelectorAll(".truncate .text-3xl");
       expect(voteCards[0].textContent).toBe("3");
       expect(voteCards[1].textContent).toBe("5");
       expect(voteCards[2].textContent).toBe("8");

@@ -321,9 +321,10 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       renderPage();
 
       await waitFor(() => {
-        // Results section
-        expect(screen.getByText(/results/i)).toBeInTheDocument();
-        expect(screen.getByText(/all votes have been revealed/i)).toBeInTheDocument();
+        // Results section - check for consensus/average display
+        expect(
+          screen.getByText(/consensus|average|most common/i)
+        ).toBeInTheDocument();
 
         // Should NOT show voting buttons anymore
         expect(screen.queryByText(/cast your vote/i)).not.toBeInTheDocument();
@@ -370,8 +371,10 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       renderPage();
 
       await waitFor(() => {
-        // Results should be visible
-        expect(screen.getByText(/results/i)).toBeInTheDocument();
+        // Results should be visible - check for consensus/average display
+        expect(
+          screen.getByText(/consensus|average|most common/i)
+        ).toBeInTheDocument();
         // But no next story button for non-leader
         expect(
           screen.queryByRole("button", { name: /next story/i })
@@ -466,8 +469,10 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       renderPage();
 
       await waitFor(() => {
-        // Results section should be visible
-        expect(screen.getByText(/results/i)).toBeInTheDocument();
+        // Results section should be visible - check for consensus/average/most common display
+        expect(
+          screen.getByText(/consensus|average|most common/i)
+        ).toBeInTheDocument();
 
         // Both participants should be visible
         expect(screen.getByText(/alice/i)).toBeInTheDocument();
@@ -603,7 +608,10 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/results/i)).toBeInTheDocument();
+        // Check for consensus/average display to verify results are shown
+        expect(
+          screen.getByText(/consensus|average|most common/i)
+        ).toBeInTheDocument();
         expect(screen.queryByText(/cast your vote/i)).not.toBeInTheDocument();
       });
     });

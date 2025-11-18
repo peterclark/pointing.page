@@ -346,7 +346,7 @@ export function ActiveRoomPage() {
 
   return (
     <div className="container mx-auto min-h-screen px-4 py-8">
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="mx-auto max-w-4xl space-y-4">
         {/* Room Header Section */}
         <Card className="p-6">
           <div className="space-y-4">
@@ -386,15 +386,7 @@ export function ActiveRoomPage() {
             <>
               {isLeader ? (
                 // Leader sees story form
-                <div className="space-y-4">
-                  <div className="text-center sm:text-left">
-                    <h2 className="text-2xl font-semibold">Create a Story</h2>
-                    <p className="text-muted-foreground mt-1">
-                      Start a new voting session by adding a story
-                    </p>
-                  </div>
-                  <StoryForm roomId={room.id} />
-                </div>
+                <StoryForm roomId={room.id} />
               ) : (
                 // Non-leaders see waiting message
                 <Card className="p-8">
@@ -446,11 +438,27 @@ export function ActiveRoomPage() {
               {!isRevealed && (
                 <Card className="p-6">
                   <div className="space-y-6">
-                    <div className="text-center sm:text-left">
-                      <h3 className="text-xl font-semibold">Cast Your Vote</h3>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        Select your estimation for this story
-                      </p>
+                    <div className="sm:text-left flex">
+                      <div>
+                        <h3 className="text-xl font-semibold">
+                          Cast Your Vote
+                        </h3>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          Select your estimation for this story
+                        </p>
+                      </div>
+
+                      {/* Leader Controls - Reveal Button */}
+                      {isLeader && (
+                        <div className="ml-auto flex justify-center sm:justify-end pt-4">
+                          <LeaderControls
+                            roomId={room.id}
+                            storyId={activeStory.id}
+                            isRevealed={false}
+                            isLeader={true}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <VotingButtons
@@ -460,18 +468,6 @@ export function ActiveRoomPage() {
                       currentVote={currentVote}
                       isRevealed={false}
                     />
-
-                    {/* Leader Controls - Reveal Button */}
-                    {isLeader && (
-                      <div className="flex justify-center sm:justify-end pt-4">
-                        <LeaderControls
-                          roomId={room.id}
-                          storyId={activeStory.id}
-                          isRevealed={false}
-                          isLeader={true}
-                        />
-                      </div>
-                    )}
                   </div>
                 </Card>
               )}
@@ -480,19 +476,11 @@ export function ActiveRoomPage() {
               {isRevealed && (
                 <>
                   {/* Vote Results */}
-                  <div>
-                    <div className="mb-4 text-center sm:text-left">
-                      <h3 className="text-xl font-semibold">Results</h3>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        All votes have been revealed
-                      </p>
-                    </div>
-                    <VoteResults
-                      votes={votes.filter((v) => v.story_id === activeStory.id)}
-                      participants={participants}
-                      pointScale={room.point_scale}
-                    />
-                  </div>
+                  <VoteResults
+                    votes={votes.filter((v) => v.story_id === activeStory.id)}
+                    participants={participants}
+                    pointScale={room.point_scale}
+                  />
 
                   {/* Leader Controls - Next Story Button */}
                   {isLeader && (

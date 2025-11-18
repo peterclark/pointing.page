@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Tables } from "@/lib/supabase/client";
 import {
   calculateFibonacciConsensus,
@@ -6,6 +6,7 @@ import {
   isConsensusVote,
   sortVotesByValue,
 } from "@/lib/utils";
+import { SparklesCore } from "./ui/sparkles";
 
 interface VoteResultsProps {
   votes: Tables<"votes">[];
@@ -39,9 +40,7 @@ export function VoteResults({
   }
 
   // Create a map of participant_id to participant for quick lookup
-  const participantMap = new Map(
-    participants.map((p) => [p.id, p])
-  );
+  const participantMap = new Map(participants.map((p) => [p.id, p]));
 
   // Calculate consensus
   const pointValues = revealedVotes.map((v) => v.point_value);
@@ -53,7 +52,7 @@ export function VoteResults({
     const result = calculateFibonacciConsensus(pointValues);
     if (result.consensus === 0 && pointValues.every((v) => v === "?")) {
       consensusDisplayValue = "No Consensus";
-      consensusLabel = "All votes are \"?\"";
+      consensusLabel = 'All votes are "?"';
       actualConsensusValue = 0;
     } else if (result.consensus === 0) {
       consensusDisplayValue = "No Consensus";
@@ -79,7 +78,7 @@ export function VoteResults({
     const result = calculateTshirtConsensus(pointValues);
     if (result.consensus === "" && pointValues.every((v) => v === "?")) {
       consensusDisplayValue = "No Consensus";
-      consensusLabel = "All votes are \"?\"";
+      consensusLabel = 'All votes are "?"';
       actualConsensusValue = "";
     } else if (result.consensus === "") {
       consensusDisplayValue = "No Consensus";
@@ -106,17 +105,32 @@ export function VoteResults({
   return (
     <div className="space-y-6">
       {/* Consensus Card */}
-      <Card className="border-2 border-primary">
-        <CardContent className="p-6 text-center">
-          <div className="text-4xl font-bold">{consensusDisplayValue}</div>
-          <div className="text-sm text-muted-foreground mt-2">
-            {consensusLabel}
+      <Card className="p-0">
+        <CardContent className="p-2 text-center">
+          <div className="h-36 relative w-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-xl">
+            <div className="w-full absolute inset-0 h-screen">
+              <SparklesCore
+                id="tsparticlesfullpage"
+                background="transparent"
+                minSize={0.6}
+                maxSize={1.4}
+                particleDensity={100}
+                className="w-full h-full"
+                particleColor="#FFFFFF"
+              />
+            </div>
+            <h1 className="md:text-7xl text-3xl lg:text-6xl font-bold text-center text-white relative z-20">
+              <div className="text-6xl font-bold">{consensusDisplayValue}</div>
+              <div className="text-sm text-muted-foreground mt-2">
+                {consensusLabel}
+              </div>
+            </h1>
           </div>
         </CardContent>
       </Card>
 
       {/* Individual Votes Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="flex flex-wrap gap-4">
         {sortedVotes.map((vote) => {
           const participant = participantMap.get(vote.participant_id);
           const isConsensus = isConsensusVote(
@@ -127,7 +141,8 @@ export function VoteResults({
 
           // Only apply consensus highlighting if we have a valid consensus
           const showHighlighting =
-            consensusDisplayValue !== "No Consensus" && vote.point_value !== "?";
+            consensusDisplayValue !== "No Consensus" &&
+            vote.point_value !== "?";
 
           return (
             <Card
@@ -135,18 +150,16 @@ export function VoteResults({
               className={
                 showHighlighting
                   ? isConsensus
-                    ? "border-2 border-green-500"
-                    : "border-2 border-yellow-500"
+                    ? "border-2 border-green-500 py-4 flex-1 max-w-25"
+                    : "border-2 border-yellow-500 py-4 flex-1 max-w-25"
                   : ""
               }
             >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-normal">
-                  {participant?.name || "Unknown"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-4">
+              <CardContent className="truncate">
                 <div className="text-3xl font-bold">{vote.point_value}</div>
+                <span className="text-xs font-light truncate">
+                  {participant?.name || "Unknown"}
+                </span>
               </CardContent>
             </Card>
           );

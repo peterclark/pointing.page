@@ -99,7 +99,7 @@ export function CreateRoomDialog({
       const participant = await joinRoom(room.id, null, data.participantName);
 
       // Save the participant's database ID to localStorage for future room access
-      localStorage.setItem('participant_id', participant.id);
+      localStorage.setItem("participant_id", participant.id);
 
       // Notify parent of success with room code
       onRoomCreationSuccess(room.room_code);
@@ -169,10 +169,10 @@ export function CreateRoomDialog({
                 size="lg"
                 disabled={!isNameEntered || isSubmitting}
                 onClick={() => handlePointScaleClick("fibonacci")}
-                className="h-24 text-lg font-semibold"
+                className="h-24 text-lg font-semibold flex flex-col"
               >
                 Fibonacci
-                <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                <span className="block text-xs font-normal text-muted-foreground">
                   1, 2, 3, 5, 8, 13...
                 </span>
               </Button>
@@ -182,10 +182,10 @@ export function CreateRoomDialog({
                 size="lg"
                 disabled={!isNameEntered || isSubmitting}
                 onClick={() => handlePointScaleClick("t-shirt")}
-                className="h-24 text-lg font-semibold"
+                className="h-24 text-lg font-semibold flex flex-col"
               >
                 T-shirt
-                <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                <span className="block text-xs font-normal text-muted-foreground">
                   XS, S, M, L, XL...
                 </span>
               </Button>

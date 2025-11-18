@@ -22,10 +22,12 @@ export function JoinRoomHandler() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(true);
   const [dbOperationComplete, setDbOperationComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validatedRoomCode, setValidatedRoomCode] = useState<string | null>(null);
+  const [validatedRoomCode, setValidatedRoomCode] = useState<string | null>(
+    null
+  );
 
   // Handle loading completion - navigate to room or landing
   const handleLoadingComplete = useCallback(() => {
