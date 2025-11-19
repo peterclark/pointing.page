@@ -96,8 +96,6 @@ export function subscribeToRoomParticipants(
         filter: `room_id=eq.${roomId}` // Server-side filtering
       },
       (payload: RealtimePostgresChangesPayload<Participant>) => {
-        console.log(`[Realtime] Participant ${payload.eventType}:`, payload.new || payload.old);
-
         switch (payload.eventType) {
           case 'INSERT':
             callbacks.onInsert?.(payload.new);
@@ -111,14 +109,7 @@ export function subscribeToRoomParticipants(
         }
       }
     )
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to participants in room ${roomId}`);
-      }
-      if (status === 'CHANNEL_ERROR') {
-        console.error(`[Realtime] Error subscribing to participants:`, err);
-      }
-    });
+    .subscribe();
 
   return channel;
 }
@@ -158,8 +149,6 @@ export function subscribeToRoomStories(
         filter: `room_id=eq.${roomId}`
       },
       (payload: RealtimePostgresChangesPayload<Story>) => {
-        console.log(`[Realtime] Story ${payload.eventType}:`, payload.new || payload.old);
-
         switch (payload.eventType) {
           case 'INSERT':
             callbacks.onInsert?.(payload.new);
@@ -170,14 +159,7 @@ export function subscribeToRoomStories(
         }
       }
     )
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to stories in room ${roomId}`);
-      }
-      if (status === 'CHANNEL_ERROR') {
-        console.error(`[Realtime] Error subscribing to stories:`, err);
-      }
-    });
+    .subscribe();
 
   return channel;
 }
@@ -222,8 +204,6 @@ export function subscribeToStoryVotes(
         filter: `story_id=eq.${storyId}`
       },
       (payload: RealtimePostgresChangesPayload<Vote>) => {
-        console.log(`[Realtime] Vote ${payload.eventType}:`, payload.new || payload.old);
-
         switch (payload.eventType) {
           case 'INSERT':
             callbacks.onInsert?.(payload.new);
@@ -234,14 +214,7 @@ export function subscribeToStoryVotes(
         }
       }
     )
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to votes for story ${storyId}`);
-      }
-      if (status === 'CHANNEL_ERROR') {
-        console.error(`[Realtime] Error subscribing to votes:`, err);
-      }
-    });
+    .subscribe();
 
   return channel;
 }
@@ -277,18 +250,10 @@ export function subscribeToRoomUpdates(
         filter: `id=eq.${roomId}`
       },
       (payload: RealtimePostgresChangesPayload<Room>) => {
-        console.log(`[Realtime] Room updated:`, payload.new);
         onUpdate(payload.new);
       }
     )
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to room ${roomId} updates`);
-      }
-      if (status === 'CHANNEL_ERROR') {
-        console.error(`[Realtime] Error subscribing to room updates:`, err);
-      }
-    });
+    .subscribe();
 
   return channel;
 }
@@ -328,7 +293,6 @@ export function subscribeToRoomData(
         filter: `room_id=eq.${roomId}`
       },
       (payload: RealtimePostgresChangesPayload<Participant>) => {
-        console.log(`[Realtime] Participant ${payload.eventType}:`, payload.new || payload.old);
         callbacks.onParticipantChange?.(payload);
       }
     )
@@ -341,7 +305,6 @@ export function subscribeToRoomData(
         filter: `room_id=eq.${roomId}`
       },
       (payload: RealtimePostgresChangesPayload<Story>) => {
-        console.log(`[Realtime] Story ${payload.eventType}:`, payload.new || payload.old);
         callbacks.onStoryChange?.(payload);
       }
     )
@@ -354,18 +317,10 @@ export function subscribeToRoomData(
         filter: `id=eq.${roomId}`
       },
       (payload: RealtimePostgresChangesPayload<Room>) => {
-        console.log(`[Realtime] Room updated:`, payload.new);
         callbacks.onRoomChange?.(payload);
       }
     )
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to all data for room ${roomId}`);
-      }
-      if (status === 'CHANNEL_ERROR') {
-        console.error(`[Realtime] Error subscribing to room data:`, err);
-      }
-    });
+    .subscribe();
 
   return channel;
 }
@@ -403,16 +358,12 @@ export function subscribeWithReconnect(
 
     channel.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Successfully subscribed to ${channelName}`);
         retryCount = 0; // Reset retry count on successful connection
       }
 
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.error(`[Realtime] Connection error for ${channelName}:`, err);
-
         if (retryCount < maxRetries) {
           const delay = baseDelay * Math.pow(2, retryCount);
-          console.log(`[Realtime] Retrying ${channelName} in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
 
           setTimeout(() => {
             retryCount++;
@@ -420,13 +371,7 @@ export function subscribeWithReconnect(
             supabase.removeChannel(channel);
             attemptSubscribe();
           }, delay);
-        } else {
-          console.error(`[Realtime] Max retries reached for ${channelName}. Giving up.`);
         }
-      }
-
-      if (status === 'CLOSED') {
-        console.log(`[Realtime] Connection closed for ${channelName}`);
       }
     });
   }
@@ -526,13 +471,9 @@ export function useRoomParticipants(roomId: string): Participant[] {
  * @param channels - Array of RealtimeChannel instances to remove
  */
 export async function unsubscribeAll(channels: RealtimeChannel[]): Promise<void> {
-  console.log(`[Realtime] Unsubscribing from ${channels.length} channels...`);
-
   await Promise.all(
     channels.map((channel) => supabase.removeChannel(channel))
   );
-
-  console.log(`[Realtime] Successfully unsubscribed from all channels`);
 }
 
 // ============================================================================

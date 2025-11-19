@@ -104,7 +104,6 @@ export function CreateRoomDialog({
       // Notify parent of success with room code
       onRoomCreationSuccess(room.room_code);
     } catch (error) {
-      console.error("Failed to create room:", error);
       onRoomCreationError("Failed to create room. Please try again.");
       setIsSubmitting(false);
     }

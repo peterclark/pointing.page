@@ -53,7 +53,6 @@ export function LeaderControls({
       await revealVotes(storyId);
       toast.success("Votes revealed!");
     } catch (error) {
-      console.error("Failed to reveal votes:", error);
       toast.error("Failed to reveal votes. Please try again.");
     } finally {
       setIsRevealing(false);
@@ -69,7 +68,6 @@ export function LeaderControls({
       await clearActiveStory(roomId);
       toast.success("Ready for next story!");
     } catch (error) {
-      console.error("Failed to clear active story:", error);
       toast.error("Failed to start next story. Please try again.");
     } finally {
       setIsClearing(false);

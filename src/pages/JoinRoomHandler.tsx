@@ -72,7 +72,6 @@ export function JoinRoomHandler() {
         setValidatedRoomCode(normalizedCode);
         setDbOperationComplete(true);
       } catch (err) {
-        console.error("Failed to join room:", err);
         setError("Failed to join room. Please try again.");
         setDbOperationComplete(true);
       }

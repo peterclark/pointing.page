@@ -87,7 +87,6 @@ export function ActiveRoomPage() {
 
         setRoom(roomData);
       } catch (error) {
-        console.error("Failed to fetch room:", error);
         navigate("/", {
           state: { error: "Failed to load room. Please try again." },
         });
@@ -106,6 +105,7 @@ export function ActiveRoomPage() {
     participants,
     isLoading: isLoadingSubscription,
     error: subscriptionError,
+    isReconnecting,
   } = useRoomSubscription(room?.id || "");
 
   // State for joining the room
@@ -119,23 +119,19 @@ export function ActiveRoomPage() {
     [participants, participantId]
   );
 
-  // Debug logging
+
+  // Show toast when reconnecting
   useEffect(() => {
-    console.log("[ActiveRoomPage] Participant lookup:", {
-      participantId,
-      participantsCount: participants.length,
-      participantIds: participants.map((p) => p.id),
-      currentParticipant: currentParticipant?.id,
-      isLoadingRoom,
-      isLoadingSubscription,
-    });
-  }, [
-    participantId,
-    participants,
-    currentParticipant,
-    isLoadingRoom,
-    isLoadingSubscription,
-  ]);
+    if (isReconnecting) {
+      toast.info("Connection lost. Reconnecting...", {
+        duration: Infinity, // Keep showing until reconnected
+        id: "reconnecting", // Use consistent ID so it doesn't duplicate
+      });
+    } else {
+      // Dismiss reconnecting toast when connection restored
+      toast.dismiss("reconnecting");
+    }
+  }, [isReconnecting]);
 
   // Check if participant is in the room
   useEffect(() => {
@@ -146,9 +142,6 @@ export function ActiveRoomPage() {
       !currentParticipant
     ) {
       // Participant not found in room or no participant ID - show join form
-      console.log(
-        "[ActiveRoomPage] Showing join form - participant not found or no participant ID"
-      );
       setShowJoinForm(true);
     } else if (currentParticipant) {
       // Participant found - hide join form
@@ -212,7 +205,6 @@ export function ActiveRoomPage() {
       setShowJoinForm(false);
       toast.success("Successfully joined the room!");
     } catch (error) {
-      console.error("Failed to join room:", error);
       toast.error("Failed to join room. Please try again.");
     } finally {
       setIsJoining(false);

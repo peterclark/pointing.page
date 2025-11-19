@@ -47,6 +47,7 @@ export interface RoomSubscriptionData {
   participants: Tables<'participants'>[];
   isLoading: boolean;
   error: Error | null;
+  isReconnecting: boolean;
 }
 
 /**
@@ -61,9 +62,14 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
   const [participants, setParticipants] = useState<Tables<'participants'>[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
 
   // Use ref to track current stories for vote filtering
   const storiesRef = useRef<Tables<'stories'>[]>([]);
+
+  // Track consecutive connection errors
+  const errorCountRef = useRef<number>(0);
+  const maxErrorsBeforeFailure = 3;
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -73,7 +79,6 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
   useEffect(() => {
     // Validate roomId
     if (!roomId) {
-      console.warn('[useRoomSubscription] No roomId provided');
       setIsLoading(false);
       return;
     }
@@ -84,6 +89,20 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     // Reset state when roomId changes
     setIsLoading(true);
     setError(null);
+
+    // Monitor network connection status
+    const handleOnline = () => {
+      // Network restored
+    };
+
+    const handleOffline = () => {
+      if (isMounted) {
+        setError(new Error('Network connection lost. Please check your internet connection.'));
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     // Fetch initial data for all tables
     const fetchInitialData = async () => {
@@ -141,7 +160,6 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
           setIsLoading(false);
         }
       } catch (err) {
-        console.error('[useRoomSubscription] Error fetching initial data:', err);
         if (isMounted) {
           setError(err instanceof Error ? err : new Error('Unknown error fetching data'));
           setIsLoading(false);
@@ -164,9 +182,8 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
           filter: `room_id=eq.${roomId}`,
         },
         (payload: RealtimePostgresChangesPayload<Tables<'participants'>>) => {
-          console.log(`[useRoomSubscription] Participant ${payload.eventType}:`, payload.new || payload.old);
-
           if (payload.eventType === 'INSERT') {
+            console.log(`[useRoomSubscription] Participant joined:`, payload.new);
             const newParticipant = payload.new as Tables<'participants'>;
             setParticipants((prev) => {
               const exists = prev.some((p) => p.id === newParticipant.id);
@@ -196,8 +213,6 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
           filter: `room_id=eq.${roomId}`,
         },
         (payload: RealtimePostgresChangesPayload<Tables<'stories'>>) => {
-          console.log(`[useRoomSubscription] Story ${payload.eventType}:`, payload.new || payload.old);
-
           if (payload.eventType === 'INSERT') {
             const newStory = payload.new as Tables<'stories'>;
             setStories((prev) => {
@@ -311,27 +326,67 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
       )
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
-          console.log(`[useRoomSubscription] Subscribed to room ${roomId} voting data`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[useRoomSubscription] Subscription error:', err);
+          // Clear reconnecting state and reset error count on successful connection
+          // Note: We don't clear errors here because they might be from initial data fetch
           if (isMounted) {
-            setError(new Error(`Subscription error: ${err?.message || 'Unknown error'}`));
+            setIsReconnecting(false);
+            errorCountRef.current = 0;
+          }
+        } else if (status === 'CHANNEL_ERROR') {
+          // Try to extract error details from various possible properties
+          let errorMessage = 'Connection lost';
+
+          if (err) {
+
+            // Try different property paths that Supabase might use
+            if (typeof err === 'string') {
+              errorMessage = err;
+            } else if (err.message) {
+              errorMessage = err.message;
+            } else if (err.error) {
+              errorMessage = typeof err.error === 'string' ? err.error : err.error.message || JSON.stringify(err.error);
+            } else if (err.msg) {
+              errorMessage = err.msg;
+            } else if (err.details) {
+              errorMessage = err.details;
+            } else if (err.reason) {
+              errorMessage = err.reason;
+            }
+          }
+
+          if (isMounted) {
+            errorCountRef.current += 1;
+
+            // If we've had multiple consecutive errors without successful reconnection, show error
+            if (errorCountRef.current >= maxErrorsBeforeFailure) {
+              setError(new Error(`Connection error: ${errorMessage}. Please refresh the page.`));
+              setIsReconnecting(false);
+            } else {
+              // First few errors - just show reconnecting state, Supabase will auto-reconnect
+              setIsReconnecting(true);
+              setError(null);
+            }
           }
         } else if (status === 'TIMED_OUT') {
-          console.warn('[useRoomSubscription] Subscription timed out');
           if (isMounted) {
-            setError(new Error('Subscription timed out'));
+            errorCountRef.current += 1;
+            if (errorCountRef.current >= maxErrorsBeforeFailure) {
+              setError(new Error('Connection timed out. Please refresh the page.'));
+              setIsReconnecting(false);
+            } else {
+              setIsReconnecting(true);
+              setError(null);
+            }
           }
-        } else if (status === 'CLOSED') {
-          console.log('[useRoomSubscription] Subscription closed');
         }
       });
 
     // Cleanup on unmount or roomId change
     return () => {
       isMounted = false;
-      console.log(`[useRoomSubscription] Unsubscribing from room ${roomId}`);
       supabase.removeChannel(channel);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, [roomId]); // Only re-run when roomId changes
 
@@ -341,5 +396,6 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     participants,
     isLoading,
     error,
+    isReconnecting,
   };
 }
