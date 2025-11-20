@@ -82,7 +82,7 @@ export function LeaderControls({
           onClick={handleRevealVotes}
           disabled={isRevealing}
           size="lg"
-          className="w-full sm:w-auto bg-fuchsia-500 hover:bg-fuchsia-600"
+          className="w-full sm:w-auto dark:bg-fuchsia-500 bg-fuchsia-800 hover:bg-fuchsia-600"
           variant="default"
         >
           {isRevealing && <Loader2 className="h-4 w-4 animate-spin" />}

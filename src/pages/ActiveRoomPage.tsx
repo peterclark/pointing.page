@@ -22,6 +22,7 @@ import { ParticipantStatus } from "@/components/ParticipantStatus";
 import { VoteResults } from "@/components/VoteResults";
 import { LeaderControls } from "@/components/LeaderControls";
 import { ModeToggle } from "@/components/mode-toggle";
+import Header from "@/components/Header";
 
 /**
  * Active Room Page Component
@@ -338,6 +339,7 @@ export function ActiveRoomPage() {
   return (
     <div className="container mx-auto min-h-screen px-4 py-8">
       <div className="mx-auto max-w-4xl space-y-4">
+        <Header />
         {/* Room Header Section */}
         <Card className="p-6">
           <div className="space-y-4">
