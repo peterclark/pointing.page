@@ -6,6 +6,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 import { WavyBackground } from "@/components/ui/wavy-background";
 import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
+import Header from "@/components/Header";
 
 /**
  * Landing Page Component
@@ -92,12 +93,7 @@ export function LandingPage() {
     <div className="bg-black">
       {!isDialogOpen && (
         <WavyBackground className="mx-auto flex flex-col">
-          <p className="text-5xl md:text-6xl lg:text-7xl text-fuchsia-400 font-bold inter-var text-center">
-            Pointing
-            <span className="text-lg md:text-2xl lg:text-3xl font-light">
-              .page
-            </span>
-          </p>
+          <Header />
           <TypewriterEffectSmooth words={tagline} />
           <Button
             size="lg"

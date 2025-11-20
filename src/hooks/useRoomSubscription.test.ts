@@ -298,9 +298,12 @@ describe('useRoomSubscription', () => {
     // Wait for error state
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
-    });
+    }, { timeout: 3000 });
 
-    expect(result.current.error).toBeTruthy();
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    }, { timeout: 3000 });
+
     expect(result.current.error?.message).toContain('Failed to fetch');
   });
 
@@ -344,20 +347,24 @@ describe('useRoomSubscription', () => {
 
     vi.mocked(supabase.from).mockImplementation(mockFrom);
 
-    // Mock subscription error
+    // Mock subscription error - need to send 3 errors to trigger error state (maxErrorsBeforeFailure = 3)
     mockChannel.subscribe = vi.fn().mockImplementation((callback) => {
-      setTimeout(() => callback('CHANNEL_ERROR', new Error('Connection failed')), 0);
+      setTimeout(() => {
+        callback('CHANNEL_ERROR', { message: 'Connection failed' });
+        callback('CHANNEL_ERROR', { message: 'Connection failed' });
+        callback('CHANNEL_ERROR', { message: 'Connection failed' });
+      }, 0);
       return mockChannel;
     });
 
     const { result } = renderHook(() => useRoomSubscription(roomId));
 
-    // Wait for error to be set
+    // Wait for error to be set (after 3 consecutive errors)
     await waitFor(() => {
       expect(result.current.error).toBeTruthy();
-    });
+    }, { timeout: 3000 });
 
-    expect(result.current.error?.message).toContain('Subscription error');
+    expect(result.current.error?.message).toContain('Connection error');
   });
 
   it('should handle DELETE events for participants', async () => {

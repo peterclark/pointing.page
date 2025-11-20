@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -103,8 +104,7 @@ export function CreateRoomDialog({
 
       // Notify parent of success with room code
       onRoomCreationSuccess(room.room_code);
-    } catch (error) {
-      console.error("Failed to create room:", error);
+    } catch (_error) {
       onRoomCreationError("Failed to create room. Please try again.");
       setIsSubmitting(false);
     }
@@ -122,6 +122,9 @@ export function CreateRoomDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create a Room</DialogTitle>
+          <DialogDescription>
+            Set up a new story pointing session for your team.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

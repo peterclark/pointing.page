@@ -50,8 +50,7 @@ export function VotingButtons({
     try {
       await submitVote(storyId, participantId, pointValue);
       // Success - the subscription will update currentVote
-    } catch (error) {
-      console.error("Failed to submit vote:", error);
+    } catch (_error) {
       toast.error("Failed to submit vote. Please try again.");
       // Rollback optimistic update
       setOptimisticVote(null);

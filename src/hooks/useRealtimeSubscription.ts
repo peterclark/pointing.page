@@ -28,10 +28,13 @@
  * @see /src/lib/supabase/subscriptions.example.ts for patterns
  */
 
-import { useEffect, useState } from 'react';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/client';
-import type { Tables } from '@/lib/supabase/client';
+import { useEffect, useState } from "react";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/client";
+import type { Tables } from "@/lib/supabase/client";
 
 // ============================================================================
 // HOOK: useRoomParticipants
@@ -67,25 +70,26 @@ import type { Tables } from '@/lib/supabase/client';
  * }
  * ```
  */
-export function useRoomParticipants(roomId: string): Tables<'participants'>[] {
-  const [participants, setParticipants] = useState<Tables<'participants'>[]>([]);
+export function useRoomParticipants(roomId: string): Tables<"participants">[] {
+  const [participants, setParticipants] = useState<Tables<"participants">[]>(
+    []
+  );
 
   useEffect(() => {
     // Validate roomId
     if (!roomId) {
-      console.warn('[useRoomParticipants] No roomId provided');
       return;
     }
 
     // Fetch initial data
     supabase
-      .from('participants')
-      .select('*')
-      .eq('room_id', roomId)
-      .order('joined_at', { ascending: true })
+      .from("participants")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("joined_at", { ascending: true })
       .then(({ data, error }) => {
         if (error) {
-          console.error('[useRoomParticipants] Error fetching initial data:', error);
+          // do nothing
         } else if (data) {
           setParticipants(data);
         }
@@ -95,16 +99,15 @@ export function useRoomParticipants(roomId: string): Tables<'participants'>[] {
     const channel: RealtimeChannel = supabase
       .channel(`room:${roomId}:participants`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'participants',
+          event: "INSERT",
+          schema: "public",
+          table: "participants",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'participants'>>) => {
-          console.log('[useRoomParticipants] INSERT:', payload.new);
-          const newParticipant = payload.new as Tables<'participants'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"participants">>) => {
+          const newParticipant = payload.new as Tables<"participants">;
           setParticipants((prev) => {
             // Check if participant already exists (shouldn't happen, but defensive)
             const exists = prev.some((p) => p.id === newParticipant.id);
@@ -116,50 +119,51 @@ export function useRoomParticipants(roomId: string): Tables<'participants'>[] {
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'participants',
+          event: "UPDATE",
+          schema: "public",
+          table: "participants",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'participants'>>) => {
-          console.log('[useRoomParticipants] UPDATE:', payload.new);
-          const updatedParticipant = payload.new as Tables<'participants'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"participants">>) => {
+          const updatedParticipant = payload.new as Tables<"participants">;
           setParticipants((prev) =>
-            prev.map((p) => (p.id === updatedParticipant.id ? updatedParticipant : p))
+            prev.map((p) =>
+              p.id === updatedParticipant.id ? updatedParticipant : p
+            )
           );
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'participants',
+          event: "DELETE",
+          schema: "public",
+          table: "participants",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'participants'>>) => {
-          console.log('[useRoomParticipants] DELETE:', payload.old);
-          const deletedParticipant = payload.old as Tables<'participants'>;
-          setParticipants((prev) => prev.filter((p) => p.id !== deletedParticipant.id));
+        (payload: RealtimePostgresChangesPayload<Tables<"participants">>) => {
+          const deletedParticipant = payload.old as Tables<"participants">;
+          setParticipants((prev) =>
+            prev.filter((p) => p.id !== deletedParticipant.id)
+          );
         }
       )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`[useRoomParticipants] Subscribed to room ${roomId}`);
+      .subscribe((status, _err) => {
+        if (status === "SUBSCRIBED") {
+          // subscribed successfully
         }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[useRoomParticipants] Subscription error:', err);
+        if (status === "CHANNEL_ERROR") {
+          // handle channel error
         }
-        if (status === 'TIMED_OUT') {
-          console.warn('[useRoomParticipants] Subscription timed out');
+        if (status === "TIMED_OUT") {
+          // handle timeout
         }
       });
 
     // Cleanup on unmount
     return () => {
-      console.log(`[useRoomParticipants] Unsubscribing from room ${roomId}`);
       supabase.removeChannel(channel);
     };
   }, [roomId]);
@@ -202,24 +206,23 @@ export function useRoomParticipants(roomId: string): Tables<'participants'>[] {
  * }
  * ```
  */
-export function useRoomStories(roomId: string): Tables<'stories'>[] {
-  const [stories, setStories] = useState<Tables<'stories'>[]>([]);
+export function useRoomStories(roomId: string): Tables<"stories">[] {
+  const [stories, setStories] = useState<Tables<"stories">[]>([]);
 
   useEffect(() => {
     if (!roomId) {
-      console.warn('[useRoomStories] No roomId provided');
       return;
     }
 
     // Fetch initial data
     supabase
-      .from('stories')
-      .select('*')
-      .eq('room_id', roomId)
-      .order('created_at', { ascending: true })
+      .from("stories")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: true })
       .then(({ data, error }) => {
         if (error) {
-          console.error('[useRoomStories] Error fetching initial data:', error);
+          // do nothing
         } else if (data) {
           setStories(data);
         }
@@ -229,16 +232,15 @@ export function useRoomStories(roomId: string): Tables<'stories'>[] {
     const channel: RealtimeChannel = supabase
       .channel(`room:${roomId}:stories`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'stories',
+          event: "INSERT",
+          schema: "public",
+          table: "stories",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'stories'>>) => {
-          console.log('[useRoomStories] INSERT:', payload.new);
-          const newStory = payload.new as Tables<'stories'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"stories">>) => {
+          const newStory = payload.new as Tables<"stories">;
           setStories((prev) => {
             const exists = prev.some((s) => s.id === newStory.id);
             if (exists) return prev;
@@ -249,33 +251,31 @@ export function useRoomStories(roomId: string): Tables<'stories'>[] {
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'stories',
+          event: "UPDATE",
+          schema: "public",
+          table: "stories",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'stories'>>) => {
-          console.log('[useRoomStories] UPDATE:', payload.new);
-          const updatedStory = payload.new as Tables<'stories'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"stories">>) => {
+          const updatedStory = payload.new as Tables<"stories">;
           setStories((prev) =>
             prev.map((s) => (s.id === updatedStory.id ? updatedStory : s))
           );
         }
       )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`[useRoomStories] Subscribed to room ${roomId}`);
+      .subscribe((status, _err) => {
+        if (status === "SUBSCRIBED") {
+          // subscribed successfully
         }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[useRoomStories] Subscription error:', err);
+        if (status === "CHANNEL_ERROR") {
+          // handle channel error
         }
       });
 
     // Cleanup on unmount
     return () => {
-      console.log(`[useRoomStories] Unsubscribing from room ${roomId}`);
       supabase.removeChannel(channel);
     };
   }, [roomId]);
@@ -319,8 +319,8 @@ export function useRoomStories(roomId: string): Tables<'stories'>[] {
  * }
  * ```
  */
-export function useStoryVotes(storyId: string | null): Tables<'votes'>[] {
-  const [votes, setVotes] = useState<Tables<'votes'>[]>([]);
+export function useStoryVotes(storyId: string | null): Tables<"votes">[] {
+  const [votes, setVotes] = useState<Tables<"votes">[]>([]);
 
   useEffect(() => {
     // Reset votes if no storyId
@@ -331,13 +331,13 @@ export function useStoryVotes(storyId: string | null): Tables<'votes'>[] {
 
     // Fetch initial data
     supabase
-      .from('votes')
-      .select('*')
-      .eq('story_id', storyId)
-      .order('created_at', { ascending: true })
+      .from("votes")
+      .select("*")
+      .eq("story_id", storyId)
+      .order("created_at", { ascending: true })
       .then(({ data, error }) => {
         if (error) {
-          console.error('[useStoryVotes] Error fetching initial data:', error);
+          // do nothing
         } else if (data) {
           setVotes(data);
         }
@@ -347,16 +347,15 @@ export function useStoryVotes(storyId: string | null): Tables<'votes'>[] {
     const channel: RealtimeChannel = supabase
       .channel(`story:${storyId}:votes`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'votes',
+          event: "INSERT",
+          schema: "public",
+          table: "votes",
           filter: `story_id=eq.${storyId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'votes'>>) => {
-          console.log('[useStoryVotes] INSERT:', payload.new);
-          const newVote = payload.new as Tables<'votes'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"votes">>) => {
+          const newVote = payload.new as Tables<"votes">;
           setVotes((prev) => {
             const exists = prev.some((v) => v.id === newVote.id);
             if (exists) return prev;
@@ -367,33 +366,31 @@ export function useStoryVotes(storyId: string | null): Tables<'votes'>[] {
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'votes',
+          event: "UPDATE",
+          schema: "public",
+          table: "votes",
           filter: `story_id=eq.${storyId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'votes'>>) => {
-          console.log('[useStoryVotes] UPDATE:', payload.new);
-          const updatedVote = payload.new as Tables<'votes'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"votes">>) => {
+          const updatedVote = payload.new as Tables<"votes">;
           setVotes((prev) =>
             prev.map((v) => (v.id === updatedVote.id ? updatedVote : v))
           );
         }
       )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`[useStoryVotes] Subscribed to story ${storyId}`);
+      .subscribe((status, _err) => {
+        if (status === "SUBSCRIBED") {
+          // subscribed successfully
         }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[useStoryVotes] Subscription error:', err);
+        if (status === "CHANNEL_ERROR") {
+          // handle channel error
         }
       });
 
     // Cleanup on unmount
     return () => {
-      console.log(`[useStoryVotes] Unsubscribing from story ${storyId}`);
       supabase.removeChannel(channel);
     };
   }, [storyId]);
@@ -430,31 +427,30 @@ export function useStoryVotes(storyId: string | null): Tables<'votes'>[] {
  * }
  * ```
  */
-export function useConnectionStatus(): 'connected' | 'disconnected' | 'error' {
-  const [status, setStatus] = useState<'connected' | 'disconnected' | 'error'>(
-    'disconnected'
+export function useConnectionStatus(): "connected" | "disconnected" | "error" {
+  const [status, setStatus] = useState<"connected" | "disconnected" | "error">(
+    "disconnected"
   );
 
   useEffect(() => {
     // Create a dedicated monitoring channel
     const channel = supabase
-      .channel('connection-monitor')
+      .channel("connection-monitor")
       .subscribe((channelStatus) => {
-        if (channelStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-          console.log('[useConnectionStatus] Connected');
-        } else if (channelStatus === 'CLOSED') {
-          setStatus('disconnected');
-          console.log('[useConnectionStatus] Disconnected');
-        } else if (channelStatus === 'CHANNEL_ERROR' || channelStatus === 'TIMED_OUT') {
-          setStatus('error');
-          console.error('[useConnectionStatus] Connection error');
+        if (channelStatus === "SUBSCRIBED") {
+          setStatus("connected");
+        } else if (channelStatus === "CLOSED") {
+          setStatus("disconnected");
+        } else if (
+          channelStatus === "CHANNEL_ERROR" ||
+          channelStatus === "TIMED_OUT"
+        ) {
+          setStatus("error");
         }
       });
 
     // Cleanup on unmount
     return () => {
-      console.log('[useConnectionStatus] Cleaning up');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -496,39 +492,40 @@ export function useConnectionStatus(): 'connected' | 'disconnected' | 'error' {
  * ```
  */
 export function useRoomData(roomId: string): {
-  participants: Tables<'participants'>[];
-  stories: Tables<'stories'>[];
+  participants: Tables<"participants">[];
+  stories: Tables<"stories">[];
 } {
-  const [participants, setParticipants] = useState<Tables<'participants'>[]>([]);
-  const [stories, setStories] = useState<Tables<'stories'>[]>([]);
+  const [participants, setParticipants] = useState<Tables<"participants">[]>(
+    []
+  );
+  const [stories, setStories] = useState<Tables<"stories">[]>([]);
 
   useEffect(() => {
     if (!roomId) {
-      console.warn('[useRoomData] No roomId provided');
       return;
     }
 
     // Fetch initial data for both tables
     Promise.all([
       supabase
-        .from('participants')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('joined_at', { ascending: true }),
+        .from("participants")
+        .select("*")
+        .eq("room_id", roomId)
+        .order("joined_at", { ascending: true }),
       supabase
-        .from('stories')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: true }),
+        .from("stories")
+        .select("*")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: true }),
     ]).then(([participantsResult, storiesResult]) => {
       if (participantsResult.error) {
-        console.error('[useRoomData] Error fetching participants:', participantsResult.error);
+        // do nothing
       } else if (participantsResult.data) {
         setParticipants(participantsResult.data);
       }
 
       if (storiesResult.error) {
-        console.error('[useRoomData] Error fetching stories:', storiesResult.error);
+        // do nothing
       } else if (storiesResult.data) {
         setStories(storiesResult.data);
       }
@@ -538,18 +535,16 @@ export function useRoomData(roomId: string): {
     const channel = supabase
       .channel(`room:${roomId}:all-data`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'participants',
+          event: "*",
+          schema: "public",
+          table: "participants",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'participants'>>) => {
-          console.log(`[useRoomData] Participant ${payload.eventType}:`, payload.new || payload.old);
-
-          if (payload.eventType === 'INSERT') {
-            const newParticipant = payload.new as Tables<'participants'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"participants">>) => {
+          if (payload.eventType === "INSERT") {
+            const newParticipant = payload.new as Tables<"participants">;
             setParticipants((prev) => {
               const exists = prev.some((p) => p.id === newParticipant.id);
               if (exists) return prev;
@@ -557,30 +552,32 @@ export function useRoomData(roomId: string): {
                 a.joined_at.localeCompare(b.joined_at)
               );
             });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedParticipant = payload.new as Tables<'participants'>;
+          } else if (payload.eventType === "UPDATE") {
+            const updatedParticipant = payload.new as Tables<"participants">;
             setParticipants((prev) =>
-              prev.map((p) => (p.id === updatedParticipant.id ? updatedParticipant : p))
+              prev.map((p) =>
+                p.id === updatedParticipant.id ? updatedParticipant : p
+              )
             );
-          } else if (payload.eventType === 'DELETE') {
-            const deletedParticipant = payload.old as Tables<'participants'>;
-            setParticipants((prev) => prev.filter((p) => p.id !== deletedParticipant.id));
+          } else if (payload.eventType === "DELETE") {
+            const deletedParticipant = payload.old as Tables<"participants">;
+            setParticipants((prev) =>
+              prev.filter((p) => p.id !== deletedParticipant.id)
+            );
           }
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'stories',
+          event: "*",
+          schema: "public",
+          table: "stories",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<Tables<'stories'>>) => {
-          console.log(`[useRoomData] Story ${payload.eventType}:`, payload.new || payload.old);
-
-          if (payload.eventType === 'INSERT') {
-            const newStory = payload.new as Tables<'stories'>;
+        (payload: RealtimePostgresChangesPayload<Tables<"stories">>) => {
+          if (payload.eventType === "INSERT") {
+            const newStory = payload.new as Tables<"stories">;
             setStories((prev) => {
               const exists = prev.some((s) => s.id === newStory.id);
               if (exists) return prev;
@@ -588,8 +585,8 @@ export function useRoomData(roomId: string): {
                 a.created_at.localeCompare(b.created_at)
               );
             });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedStory = payload.new as Tables<'stories'>;
+          } else if (payload.eventType === "UPDATE") {
+            const updatedStory = payload.new as Tables<"stories">;
             setStories((prev) =>
               prev.map((s) => (s.id === updatedStory.id ? updatedStory : s))
             );
@@ -597,17 +594,16 @@ export function useRoomData(roomId: string): {
         }
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`[useRoomData] Subscribed to room ${roomId} data`);
+        if (status === "SUBSCRIBED") {
+          // subscribed successfully
         }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[useRoomData] Subscription error');
+        if (status === "CHANNEL_ERROR") {
+          // handle channel error
         }
       });
 
     // Cleanup on unmount
     return () => {
-      console.log(`[useRoomData] Unsubscribing from room ${roomId}`);
       supabase.removeChannel(channel);
     };
   }, [roomId]);

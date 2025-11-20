@@ -52,8 +52,7 @@ export function LeaderControls({
     try {
       await revealVotes(storyId);
       toast.success("Votes revealed!");
-    } catch (error) {
-      console.error("Failed to reveal votes:", error);
+    } catch (_error) {
       toast.error("Failed to reveal votes. Please try again.");
     } finally {
       setIsRevealing(false);
@@ -68,8 +67,7 @@ export function LeaderControls({
     try {
       await clearActiveStory(roomId);
       toast.success("Ready for next story!");
-    } catch (error) {
-      console.error("Failed to clear active story:", error);
+    } catch (_error) {
       toast.error("Failed to start next story. Please try again.");
     } finally {
       setIsClearing(false);
@@ -84,7 +82,7 @@ export function LeaderControls({
           onClick={handleRevealVotes}
           disabled={isRevealing}
           size="lg"
-          className="w-full sm:w-auto bg-fuchsia-500 hover:bg-fuchsia-600"
+          className="w-full sm:w-auto dark:bg-fuchsia-500 bg-fuchsia-800 hover:bg-fuchsia-600"
           variant="default"
         >
           {isRevealing && <Loader2 className="h-4 w-4 animate-spin" />}

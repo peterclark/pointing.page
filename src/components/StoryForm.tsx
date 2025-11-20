@@ -60,8 +60,7 @@ export function StoryForm({ roomId, onStoryCreated }: StoryFormProps) {
       onStoryCreated?.();
 
       toast.success("Story created! Voting has started.");
-    } catch (error) {
-      console.error("Failed to create story:", error);
+    } catch (_error) {
       toast.error("Failed to create story. Please try again.");
     } finally {
       setIsSubmitting(false);
