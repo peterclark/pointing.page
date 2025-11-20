@@ -86,7 +86,7 @@ export function ActiveRoomPage() {
         }
 
         setRoom(roomData);
-      } catch (error) {
+      } catch (_error) {
         navigate("/", {
           state: { error: "Failed to load room. Please try again." },
         });
@@ -118,7 +118,6 @@ export function ActiveRoomPage() {
     () => participants.find((p) => p.id === participantId),
     [participants, participantId]
   );
-
 
   // Show toast when reconnecting
   useEffect(() => {
@@ -204,7 +203,7 @@ export function ActiveRoomPage() {
       // Hide join form - participant will now be in the subscription data
       setShowJoinForm(false);
       toast.success("Successfully joined the room!");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to join room. Please try again.");
     } finally {
       setIsJoining(false);

@@ -1,41 +1,221 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 // Room name generator utility
 const adjectives = [
-  "Purple", "Jazzy", "Happy", "Bouncy", "Clever", "Swift", "Bright", "Cosmic",
-  "Electric", "Funky", "Mighty", "Noble", "Brave", "Jolly", "Sneaky", "Fancy",
-  "Rusty", "Shiny", "Smoky", "Dusty", "Sunny", "Cloudy", "Stormy", "Windy",
-  "Frosty", "Blazing", "Golden", "Silver", "Crimson", "Azure", "Emerald", "Violet",
-  "Amber", "Ivory", "Coral", "Jade", "Ruby", "Sapphire", "Pearl", "Onyx",
-  "Lucky", "Mystic", "Ancient", "Modern", "Vintage", "Classic", "Epic", "Legendary",
-  "Magical", "Stellar", "Lunar", "Solar", "Cosmic", "Galactic", "Quantum", "Atomic",
-  "Turbo", "Ultra", "Super", "Mega", "Hyper", "Ninja", "Pirate", "Robot",
-  "Laser", "Neon", "Pixel", "Digital", "Cyber", "Retro", "Funky", "Groovy",
-  "Disco", "Jazz", "Blues", "Rock", "Metal", "Punk", "Techno", "Electro",
-  "Gentle", "Fierce", "Wild", "Calm", "Quiet", "Loud", "Smooth", "Rough",
-  "Tiny", "Giant", "Mini", "Jumbo", "Micro", "Macro", "Nano", "Mega",
-  "Silly", "Wise", "Smart", "Witty", "Goofy", "Zippy", "Zany", "Wacky"
+  "Purple",
+  "Jazzy",
+  "Happy",
+  "Bouncy",
+  "Clever",
+  "Swift",
+  "Bright",
+  "Cosmic",
+  "Electric",
+  "Funky",
+  "Mighty",
+  "Noble",
+  "Brave",
+  "Jolly",
+  "Sneaky",
+  "Fancy",
+  "Rusty",
+  "Shiny",
+  "Smoky",
+  "Dusty",
+  "Sunny",
+  "Cloudy",
+  "Stormy",
+  "Windy",
+  "Frosty",
+  "Blazing",
+  "Golden",
+  "Silver",
+  "Crimson",
+  "Azure",
+  "Emerald",
+  "Violet",
+  "Amber",
+  "Ivory",
+  "Coral",
+  "Jade",
+  "Ruby",
+  "Sapphire",
+  "Pearl",
+  "Onyx",
+  "Lucky",
+  "Mystic",
+  "Ancient",
+  "Modern",
+  "Vintage",
+  "Classic",
+  "Epic",
+  "Legendary",
+  "Magical",
+  "Stellar",
+  "Lunar",
+  "Solar",
+  "Cosmic",
+  "Galactic",
+  "Quantum",
+  "Atomic",
+  "Turbo",
+  "Ultra",
+  "Super",
+  "Mega",
+  "Hyper",
+  "Ninja",
+  "Pirate",
+  "Robot",
+  "Laser",
+  "Neon",
+  "Pixel",
+  "Digital",
+  "Cyber",
+  "Retro",
+  "Funky",
+  "Groovy",
+  "Disco",
+  "Jazz",
+  "Blues",
+  "Rock",
+  "Metal",
+  "Punk",
+  "Techno",
+  "Electro",
+  "Gentle",
+  "Fierce",
+  "Wild",
+  "Calm",
+  "Quiet",
+  "Loud",
+  "Smooth",
+  "Rough",
+  "Tiny",
+  "Giant",
+  "Mini",
+  "Jumbo",
+  "Micro",
+  "Macro",
+  "Nano",
+  "Mega",
+  "Silly",
+  "Wise",
+  "Smart",
+  "Witty",
+  "Goofy",
+  "Zippy",
+  "Zany",
+  "Wacky",
 ];
 
 const nouns = [
-  "Elephant", "Giraffe", "Penguin", "Rocket", "Dragon", "Phoenix", "Tiger", "Dolphin",
-  "Eagle", "Wolf", "Panda", "Koala", "Falcon", "Hawk", "Owl", "Raven",
-  "Bear", "Lion", "Leopard", "Cheetah", "Jaguar", "Panther", "Lynx", "Bobcat",
-  "Whale", "Shark", "Octopus", "Jellyfish", "Starfish", "Seahorse", "Turtle", "Crab",
-  "Butterfly", "Dragonfly", "Ladybug", "Beetle", "Cricket", "Grasshopper", "Firefly", "Moth",
-  "Unicorn", "Pegasus", "Griffin", "Sphinx", "Hydra", "Kraken", "Basilisk", "Chimera",
-  "Thunder", "Lightning", "Comet", "Meteor", "Nova", "Eclipse", "Aurora", "Nebula",
-  "Galaxy", "Planet", "Asteroid", "Satellite", "Cosmos", "Orbit", "Constellation", "Pulsar",
-  "Mountain", "Valley", "River", "Ocean", "Desert", "Forest", "Jungle", "Meadow",
-  "Canyon", "Volcano", "Island", "Glacier", "Waterfall", "Cave", "Summit", "Plateau",
-  "Thunder", "Storm", "Breeze", "Typhoon", "Cyclone", "Tornado", "Hurricane", "Gale",
-  "Crystal", "Diamond", "Gemstone", "Prism", "Jewel", "Treasure", "Crown", "Scepter",
-  "Knight", "Wizard", "Archer", "Warrior", "Samurai", "Ninja"
+  "Elephant",
+  "Giraffe",
+  "Penguin",
+  "Rocket",
+  "Dragon",
+  "Phoenix",
+  "Tiger",
+  "Dolphin",
+  "Eagle",
+  "Wolf",
+  "Panda",
+  "Koala",
+  "Falcon",
+  "Hawk",
+  "Owl",
+  "Raven",
+  "Bear",
+  "Lion",
+  "Leopard",
+  "Cheetah",
+  "Jaguar",
+  "Panther",
+  "Lynx",
+  "Bobcat",
+  "Whale",
+  "Shark",
+  "Octopus",
+  "Jellyfish",
+  "Starfish",
+  "Seahorse",
+  "Turtle",
+  "Crab",
+  "Butterfly",
+  "Dragonfly",
+  "Ladybug",
+  "Beetle",
+  "Cricket",
+  "Grasshopper",
+  "Firefly",
+  "Moth",
+  "Unicorn",
+  "Pegasus",
+  "Griffin",
+  "Sphinx",
+  "Hydra",
+  "Kraken",
+  "Basilisk",
+  "Chimera",
+  "Thunder",
+  "Lightning",
+  "Comet",
+  "Meteor",
+  "Nova",
+  "Eclipse",
+  "Aurora",
+  "Nebula",
+  "Galaxy",
+  "Planet",
+  "Asteroid",
+  "Satellite",
+  "Cosmos",
+  "Orbit",
+  "Constellation",
+  "Pulsar",
+  "Mountain",
+  "Valley",
+  "River",
+  "Ocean",
+  "Desert",
+  "Forest",
+  "Jungle",
+  "Meadow",
+  "Canyon",
+  "Volcano",
+  "Island",
+  "Glacier",
+  "Waterfall",
+  "Cave",
+  "Summit",
+  "Plateau",
+  "Thunder",
+  "Storm",
+  "Breeze",
+  "Typhoon",
+  "Cyclone",
+  "Tornado",
+  "Hurricane",
+  "Gale",
+  "Crystal",
+  "Diamond",
+  "Gemstone",
+  "Prism",
+  "Jewel",
+  "Treasure",
+  "Crown",
+  "Scepter",
+  "Knight",
+  "Wizard",
+  "Archer",
+  "Warrior",
+  "Samurai",
+  "Ninja",
 ];
 
 /**
@@ -43,7 +223,8 @@ const nouns = [
  * Example: "Purple-Elephant", "Jazzy-Giraffe"
  */
 export function generateRoomName(): string {
-  const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomAdjective =
+    adjectives[Math.floor(Math.random() * adjectives.length)];
   const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
   return `${randomAdjective}-${randomNoun}`;
 }
@@ -97,13 +278,22 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     return true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
 
 // Point scale constants
-export const FIBONACCI_SCALE = ["1", "2", "3", "5", "8", "13", "21", "?"] as const;
+export const FIBONACCI_SCALE = [
+  "1",
+  "2",
+  "3",
+  "5",
+  "8",
+  "13",
+  "21",
+  "?",
+] as const;
 export const TSHIRT_SCALE = ["XS", "S", "M", "L", "XL", "XXL", "?"] as const;
 
 /**
@@ -127,7 +317,9 @@ export function getTshirtValues(): readonly string[] {
  * @param scale - The point scale type ("fibonacci" or "t-shirt")
  * @returns Array of point values for the specified scale
  */
-export function getPointScaleValues(scale: "fibonacci" | "t-shirt"): readonly string[] {
+export function getPointScaleValues(
+  scale: "fibonacci" | "t-shirt"
+): readonly string[] {
   return scale === "fibonacci" ? FIBONACCI_SCALE : TSHIRT_SCALE;
 }
 
@@ -150,12 +342,14 @@ export interface FibonacciConsensus {
  * @param votes - Array of vote point values
  * @returns Consensus calculation with average, rounded consensus, and outlier threshold
  */
-export function calculateFibonacciConsensus(votes: string[]): FibonacciConsensus {
+export function calculateFibonacciConsensus(
+  votes: string[]
+): FibonacciConsensus {
   // Filter out "?" votes and convert to numbers
   const numericVotes = votes
-    .filter(v => v !== "?")
-    .map(v => parseInt(v, 10))
-    .filter(v => !isNaN(v));
+    .filter((v) => v !== "?")
+    .map((v) => parseInt(v, 10))
+    .filter((v) => !isNaN(v));
 
   // If no valid votes, return zeros
   if (numericVotes.length === 0) {
@@ -198,7 +392,7 @@ export interface TshirtConsensus {
  */
 export function calculateTshirtConsensus(votes: string[]): TshirtConsensus {
   // Filter out "?" votes
-  const validVotes = votes.filter(v => v !== "?");
+  const validVotes = votes.filter((v) => v !== "?");
 
   // If no valid votes, return empty result
   if (validVotes.length === 0) {
@@ -223,7 +417,7 @@ export function calculateTshirtConsensus(votes: string[]): TshirtConsensus {
   let mode: string;
   if (modesArray.length > 1) {
     // Define T-shirt size order for sorting
-    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    const sizeOrder = ["XS", "S", "M", "L", "XL", "XXL"];
     const sortedModes = modesArray.sort((a, b) => {
       const indexA = sizeOrder.indexOf(a);
       const indexB = sizeOrder.indexOf(b);
@@ -260,7 +454,10 @@ export function isConsensusVote(
 
   if (scale === "fibonacci") {
     const voteNum = parseInt(vote, 10);
-    const consensusNum = typeof consensus === "number" ? consensus : parseInt(consensus as string, 10);
+    const consensusNum =
+      typeof consensus === "number"
+        ? consensus
+        : parseInt(consensus as string, 10);
 
     if (isNaN(voteNum) || isNaN(consensusNum)) {
       return false;
@@ -351,7 +548,7 @@ export function filterVisibleVotes<T extends VoteWithParticipant>(
   votes: T[],
   currentParticipantId: string
 ): T[] {
-  return votes.filter(vote =>
-    vote.participant_id === currentParticipantId || vote.is_revealed
+  return votes.filter(
+    (vote) => vote.participant_id === currentParticipantId || vote.is_revealed
   );
 }
