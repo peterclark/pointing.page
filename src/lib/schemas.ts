@@ -134,3 +134,54 @@ export const voteSchema = z.object({
  * Use this type for vote form data typing
  */
 export type VoteFormData = z.infer<typeof voteSchema>;
+
+/**
+ * Profile name validation schema
+ * - Required field
+ * - Min 1 character (after trimming)
+ * - Max 50 characters
+ * - Automatically trims whitespace
+ */
+export const profileNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(50, "Name must be 50 characters or less");
+
+/**
+ * Email validation schema
+ * - Required field
+ * - Must be valid email format
+ */
+export const emailSchema = z
+  .string()
+  .email("Please enter a valid email address");
+
+/**
+ * Account creation form schema
+ * Used for magic link authentication signup
+ */
+export const accountCreationSchema = z.object({
+  name: profileNameSchema,
+  email: emailSchema,
+});
+
+/**
+ * TypeScript type inferred from accountCreationSchema
+ * Use this type for account creation form data typing
+ */
+export type AccountCreationFormData = z.infer<typeof accountCreationSchema>;
+
+/**
+ * Profile update form schema
+ * Used for updating authenticated user profile
+ */
+export const profileUpdateSchema = z.object({
+  name: profileNameSchema,
+});
+
+/**
+ * TypeScript type inferred from profileUpdateSchema
+ * Use this type for profile update form data typing
+ */
+export type ProfileUpdateFormData = z.infer<typeof profileUpdateSchema>;

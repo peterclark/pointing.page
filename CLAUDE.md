@@ -75,6 +75,30 @@ shadcn/ui components follow these patterns:
 
 ## Application-Specific Patterns
 
+### Navigation Architecture
+**IMPORTANT: Do not modify Header component unless explicitly requested**
+
+**Header Component** (`src/components/Header.tsx`):
+- Contains ONLY the logo/branding ("Pointing.page")
+- Simple, centered text display with responsive sizing
+- Does NOT contain navigation buttons
+- Keep this component minimal and focused on branding
+
+**Navigation Buttons** (`src/components/RootLayout.tsx`):
+- Profile button (top right corner): Navigates to /profile
+  - Shows LogIn icon when unauthenticated
+  - Shows User icon when authenticated
+- Home button (top left corner): Navigates to landing page
+- Implemented with absolute positioning in RootLayout
+- Uses Avatar component from shadcn/ui for profile button
+- Responsive sizing across mobile, tablet, desktop
+
+**Why This Architecture:**
+- Keeps Header component simple and focused
+- Allows flexible positioning of navigation elements
+- Separates concerns: branding vs. navigation
+- Easier to maintain and modify navigation independently
+
 ### Real-time Subscription Pattern
 **Location**: `src/hooks/useRoomSubscription.ts`
 

@@ -1,3 +1,10 @@
+/**
+ * Header Component
+ *
+ * IMPORTANT: This component contains ONLY the logo/branding.
+ * Navigation buttons (profile, home) are handled in RootLayout component.
+ * DO NOT add navigation buttons here unless explicitly requested.
+ */
 const Header = () => {
   return (
     <p className="text-5xl md:text-6xl lg:text-7xl text-fuchsia-800 font-bold inter-var text-center dark:text-fuchsia-400">
