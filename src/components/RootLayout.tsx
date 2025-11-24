@@ -6,19 +6,15 @@
  */
 
 import { Outlet } from "react-router-dom";
-import ProfileButton from "./ProfileButton";
-import HomeButton from "./HomeButton";
-import { useLocation } from "react-router-dom";
+import { AppMenu } from "./AppMenu";
 
 /**
  * Root layout component with persistent header
  */
 export function RootLayout() {
-  const location = useLocation();
   return (
     <>
-      {location.pathname !== "/" && <HomeButton />}
-      {location.pathname !== "/profile" && <ProfileButton />}
+      <AppMenu />
       <Outlet />
     </>
   );

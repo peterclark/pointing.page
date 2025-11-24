@@ -82,7 +82,7 @@ export function LeaderControls({
           onClick={handleRevealVotes}
           disabled={isRevealing}
           size="lg"
-          className="w-full sm:w-auto dark:bg-fuchsia-500 bg-fuchsia-800 hover:bg-fuchsia-600"
+          className="w-full sm:w-auto"
           variant="default"
         >
           {isRevealing && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -94,7 +94,7 @@ export function LeaderControls({
           onClick={handleNextStory}
           disabled={isClearing}
           size="lg"
-          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600"
+          className="w-full sm:w-auto"
         >
           {isClearing && <Loader2 className="h-4 w-4 animate-spin" />}
           Next Story
