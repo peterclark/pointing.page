@@ -90,6 +90,9 @@ describe("Account Linking Integration", () => {
         email: "test@example.com",
         options: {
           emailRedirectTo: expect.stringContaining("/profile"),
+          data: {
+            display_name: "Test User",
+          },
         },
       });
     });
