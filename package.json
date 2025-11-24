@@ -5,14 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "npm run supabase:use-local && vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:status": "npx supabase status",
+    "supabase:use-local": "bash scripts/use-local-supabase.sh",
+    "supabase:use-local-fresh": "bash scripts/use-local-supabase.sh --reset",
+    "supabase:use-cloud": "bash scripts/use-cloud-supabase.sh",
+    "supabase:studio": "npx supabase studio open",
+    "supabase:reset": "npx supabase db reset"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",

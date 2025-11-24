@@ -781,3 +781,169 @@ export async function updateStoryAverage(
     );
   }
 }
+
+// ============================================================================
+// PROFILE OPERATIONS
+// ============================================================================
+
+/**
+ * Get a user's profile by their user ID
+ *
+ * @param userId - UUID of the authenticated user
+ * @returns Profile data if found, null if not found
+ * @throws DatabaseError if query fails
+ */
+export async function getProfile(
+  userId: string
+): Promise<Tables<'profiles'> | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new DatabaseError(
+        `Failed to get profile: ${error.message}`,
+        error.code,
+        error
+      );
+    }
+
+    return data;
+  } catch (err) {
+    if (err instanceof DatabaseError) throw err;
+    throw new DatabaseError(
+      'Unexpected error while getting profile',
+      undefined,
+      err
+    );
+  }
+}
+
+/**
+ * Create a new profile for an authenticated user
+ *
+ * @param userId - UUID of the authenticated user
+ * @param displayName - User's display name
+ * @returns The created profile data
+ * @throws DatabaseError if creation fails
+ */
+export async function createProfile(
+  userId: string,
+  displayName: string
+): Promise<Tables<'profiles'>> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        user_id: userId,
+        display_name: displayName,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new DatabaseError(
+        `Failed to create profile: ${error.message}`,
+        error.code,
+        error
+      );
+    }
+
+    if (!data) {
+      throw new DatabaseError('Profile created but no data returned');
+    }
+
+    return data;
+  } catch (err) {
+    if (err instanceof DatabaseError) throw err;
+    throw new DatabaseError(
+      'Unexpected error while creating profile',
+      undefined,
+      err
+    );
+  }
+}
+
+/**
+ * Update a user's profile display name
+ *
+ * @param userId - UUID of the authenticated user
+ * @param displayName - New display name
+ * @returns The updated profile data
+ * @throws DatabaseError if update fails
+ */
+export async function updateProfile(
+  userId: string,
+  displayName: string
+): Promise<Tables<'profiles'>> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ display_name: displayName })
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new DatabaseError(
+        `Failed to update profile: ${error.message}`,
+        error.code,
+        error
+      );
+    }
+
+    if (!data) {
+      throw new DatabaseError('Profile updated but no data returned');
+    }
+
+    return data;
+  } catch (err) {
+    if (err instanceof DatabaseError) throw err;
+    throw new DatabaseError(
+      'Unexpected error while updating profile',
+      undefined,
+      err
+    );
+  }
+}
+
+/**
+ * Link anonymous participant records to authenticated user
+ *
+ * Updates all participant records matching the localStorage ID
+ * to set their user_id to the authenticated user's ID.
+ * This preserves participation history when a user creates an account.
+ *
+ * @param localStorageId - The localStorage participant_id (UUID)
+ * @param userId - UUID of the authenticated user
+ * @throws DatabaseError if linking fails
+ */
+export async function linkParticipantsToUser(
+  localStorageId: string,
+  userId: string
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('participants')
+      .update({ user_id: userId })
+      .eq('id', localStorageId);
+
+    if (error) {
+      throw new DatabaseError(
+        `Failed to link participants to user: ${error.message}`,
+        error.code,
+        error
+      );
+    }
+  } catch (err) {
+    if (err instanceof DatabaseError) throw err;
+    throw new DatabaseError(
+      'Unexpected error while linking participants to user',
+      undefined,
+      err
+    );
+  }
+}
