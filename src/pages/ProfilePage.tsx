@@ -225,7 +225,8 @@ function UnauthenticatedView({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
-      <Card className="p-6">
+      <Header />
+      <Card className="p-6 mt-6">
         <div className="text-center sm:text-left">
           <h2 className="text-2xl font-semibold">Create Account</h2>
           <p className="text-muted-foreground mt-1">

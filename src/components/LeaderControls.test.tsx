@@ -270,8 +270,7 @@ describe("LeaderControls", () => {
       );
 
       const button = screen.getByText("Reveal Votes");
-      // Reveal button uses fuchsia color
-      expect(button.className).toContain("bg-fuchsia-500");
+      expect(button.className).toContain("bg-primary");
     });
 
     it("uses secondary variant for Next Story button", () => {
@@ -285,8 +284,8 @@ describe("LeaderControls", () => {
       );
 
       const button = screen.getByText("Next Story");
-      // Next Story button uses blue color
-      expect(button.className).toContain("bg-blue-500");
+      // Next Story button uses primary color
+      expect(button.className).toContain("bg-primary");
     });
 
     it("uses lg size for both buttons", () => {

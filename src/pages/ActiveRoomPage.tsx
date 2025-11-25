@@ -21,7 +21,6 @@ import { VotingButtons } from "@/components/VotingButtons";
 import { ParticipantStatus } from "@/components/ParticipantStatus";
 import { VoteResults } from "@/components/VoteResults";
 import { LeaderControls } from "@/components/LeaderControls";
-import { ModeToggle } from "@/components/mode-toggle";
 import Header from "@/components/Header";
 
 /**
@@ -366,7 +365,6 @@ export function ActiveRoomPage() {
                   <ClipboardDocumentIcon className="h-5 w-5" />
                   Copy Link
                 </Button>
-                <ModeToggle />
               </div>
             </div>
           </div>
