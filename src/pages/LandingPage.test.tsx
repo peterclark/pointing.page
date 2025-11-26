@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { LandingPage } from "./LandingPage";
+import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
 
 // Mock the CreateRoomDialog component
 vi.mock("@/components/CreateRoomDialog", () => ({
@@ -40,12 +41,14 @@ vi.mock("@/components/ui/typewriter-effect", () => ({
   ),
 }));
 
-// Helper to render LandingPage with Router
+// Helper to render LandingPage with Router and CommandPaletteProvider
 function renderLandingPage() {
   return render(
-    <MemoryRouter>
-      <LandingPage />
-    </MemoryRouter>
+    <CommandPaletteProvider>
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>
+    </CommandPaletteProvider>
   );
 }
 
