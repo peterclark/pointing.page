@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,36 +23,159 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useNavigate } from "react-router-dom";
+import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { signOut } from "@/lib/supabase/auth";
+import { toast } from "sonner";
 
 export function AppMenu() {
   const { setTheme } = useTheme();
   const navigate = useNavigate();
+  const { registerCommand, showHelp, openCreateRoomDialog } =
+    useCommandPalette();
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Add keyboard shortcut for ⌘/ to toggle menu
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Detect ⌘/ (Mac) or Ctrl+/ (Windows/Linux)
+      if ((event.metaKey || event.ctrlKey) && event.key === "/") {
+        event.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Register all keyboard shortcuts
+  useEffect(() => {
+    const cleanups = [
+      // Navigation commands
+      registerCommand({
+        key: "h",
+        description: "Home",
+        action: () => navigate("/"),
+        category: "navigation",
+      }),
+      registerCommand({
+        key: "p",
+        description: "Profile",
+        action: () => navigate("/profile"),
+        category: "navigation",
+      }),
+      registerCommand({
+        key: "b",
+        description: "Billing",
+        action: () => toast.info("Billing page coming soon!"),
+        category: "navigation",
+      }),
+      registerCommand({
+        key: "s",
+        description: "Settings",
+        action: () => toast.info("Settings page coming soon!"),
+        category: "navigation",
+      }),
+
+      // Room commands
+      registerCommand({
+        key: "r",
+        description: "New Room",
+        action: () => openCreateRoomDialog(),
+        category: "room",
+      }),
+
+      // Theme commands
+      registerCommand({
+        key: "l",
+        description: "Light theme",
+        action: () => {
+          setTheme("light");
+          toast.success("Switched to light theme");
+        },
+        category: "theme",
+      }),
+      registerCommand({
+        key: "d",
+        description: "Dark theme",
+        action: () => {
+          setTheme("dark");
+          toast.success("Switched to dark theme");
+        },
+        category: "theme",
+      }),
+      registerCommand({
+        key: "t",
+        description: "System theme",
+        action: () => {
+          setTheme("system");
+          toast.success("Switched to system theme");
+        },
+        category: "theme",
+      }),
+
+      // Help commands
+      registerCommand({
+        key: "?",
+        description: "Keyboard shortcuts",
+        action: () => showHelp(),
+        category: "help",
+      }),
+
+      // Account commands
+      registerCommand({
+        key: "q",
+        description: "Log out",
+        action: () => signOutAndNavigate("/"),
+        category: "account",
+      }),
+    ];
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+    };
+  }, [navigate, setTheme, registerCommand, showHelp, openCreateRoomDialog]);
+
+  const signOutAndNavigate = async (page: string) => {
+    try {
+      await signOut();
+      navigate(page);
+    } catch (error) {
+      console.error("Failed to log out:", error);
+    }
+  };
+
   return (
     <div className="fixed top-0 left-0 p-4 z-10">
-      <DropdownMenu>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="outline">
             <MenuIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="start">
+          <DropdownMenuItem onClick={() => navigate("/")}>
+            Home
+            <DropdownMenuShortcut>⌘K H</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuGroup onClick={() => navigate("/profile")}>
-            <DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
               Profile
-              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+              <DropdownMenuShortcut>⌘K P</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => toast.info("Billing page coming soon!")}
+            >
               Billing
-              <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+              <DropdownMenuShortcut>⌘K B</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => toast.info("Settings page coming soon!")}
+            >
               Settings
-              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              Keyboard shortcuts
-              <DropdownMenuShortcut>⌘K</DropdownMenuShortcut>
+              <DropdownMenuShortcut>⌘K S</DropdownMenuShortcut>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -64,10 +188,10 @@ export function AppMenu() {
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openCreateRoomDialog()}>
               <DoorClosed />
               New Room
-              <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
+              <DropdownMenuShortcut>⌘K R</DropdownMenuShortcut>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -75,25 +199,33 @@ export function AppMenu() {
             <DropdownMenuItem onClick={() => setTheme("light")}>
               <SunIcon />
               Light
-              <DropdownMenuShortcut>⇧⌘L</DropdownMenuShortcut>
+              <DropdownMenuShortcut>⌘K L</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme("dark")}>
               <MoonIcon />
               Dark
-              <DropdownMenuShortcut>⇧⌘D</DropdownMenuShortcut>
+              <DropdownMenuShortcut>⌘K D</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme("system")}>
               <LaptopMinimal />
               System
-              <DropdownMenuShortcut>⇧⌘S</DropdownMenuShortcut>
+              <DropdownMenuShortcut>⌘K T</DropdownMenuShortcut>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Support</DropdownMenuItem>
-          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => toast.info("Support page coming soon!")}
+          >
+            Support
+          </DropdownMenuItem>
           <DropdownMenuItem>
+            Keyboard shortcuts
+            <DropdownMenuShortcut>⌘K ?</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => signOutAndNavigate("/")}>
             Log out
-            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+            <DropdownMenuShortcut>⌘K Q</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

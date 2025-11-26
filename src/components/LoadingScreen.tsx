@@ -56,7 +56,7 @@ export function LoadingScreen({
   const [progress, setProgress] = useState(0);
   const [isPulsing, setIsPulsing] = useState(false);
 
-  // Timer-based progress animation (5 seconds, 50ms intervals)
+  // Timer-based progress animation (2.5 seconds, 50ms intervals)
   useEffect(() => {
     if (!isLoading) return;
 
@@ -66,7 +66,7 @@ export function LoadingScreen({
           clearInterval(interval);
           return 100;
         }
-        return prev + 1; // Increment by 1% every 50ms = 5 seconds total
+        return prev + 2; // Increment by 2% every 50ms = 2.5 seconds total
       });
     }, 50);
 

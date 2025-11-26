@@ -51,7 +51,7 @@ describe("LoadingScreen", () => {
     expect(screen.getByText("0%")).toBeInTheDocument();
   });
 
-  it("progresses to 100% over 5 seconds", () => {
+  it("progresses to 100% over 2.5 seconds", () => {
     const onComplete = vi.fn();
     render(
       <LoadingScreen
@@ -64,15 +64,15 @@ describe("LoadingScreen", () => {
     // Initial state
     expect(screen.getByText("0%")).toBeInTheDocument();
 
-    // Advance 2.5 seconds (halfway)
+    // Advance 1.25 seconds (halfway to 50%)
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(1250);
     });
     expect(screen.getByText("50%")).toBeInTheDocument();
 
-    // Advance to completion (total 5 seconds)
+    // Advance to completion (total 2.5 seconds)
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(1250);
     });
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
@@ -88,9 +88,9 @@ describe("LoadingScreen", () => {
       />
     );
 
-    // Progress to 100% (5 seconds)
+    // Progress to 100% (2.5 seconds)
     act(() => {
-      vi.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(2500);
     });
 
     // onComplete should not be called yet

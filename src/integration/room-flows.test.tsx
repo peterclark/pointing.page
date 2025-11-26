@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { LandingPage } from "@/pages/LandingPage";
 import { ActiveRoomPage } from "@/pages/ActiveRoomPage";
 import { JoinRoomHandler } from "@/pages/JoinRoomHandler";
+import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
 import * as queries from "@/lib/supabase/queries";
 import * as utils from "@/lib/utils";
 import { toast } from "sonner";
@@ -104,7 +105,11 @@ describe("Room Creation Flow Integration", () => {
       { initialEntries: ["/"] }
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     // Step 1: User lands on page and clicks "Enter"
     const enterButton = screen.getByRole("button", { name: /enter/i });
@@ -160,7 +165,11 @@ describe("Room Creation Flow Integration", () => {
       { initialEntries: ["/join/invalid"] } // Invalid: too short
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     // LoadingScreen should display with error message
     await waitFor(() => {
@@ -182,7 +191,11 @@ describe("Room Creation Flow Integration", () => {
       { initialEntries: ["/"] }
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     // Open dialog
     const enterButton = screen.getByRole("button", { name: /enter/i });
@@ -238,7 +251,11 @@ describe("Join Room Flow Integration", () => {
       { initialEntries: ["/join/valid123"] }
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     await waitFor(() => {
       expect(queries.getRoomByCode).toHaveBeenCalledWith("VALID123");
@@ -261,7 +278,11 @@ describe("Join Room Flow Integration", () => {
       { initialEntries: ["/join/NOTFOUND"] } // Valid format but room doesn't exist
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     // LoadingScreen should display
     await waitFor(() => {
@@ -331,7 +352,11 @@ describe("localStorage Persistence", () => {
       { initialEntries: ["/"] }
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     // Open dialog
     const enterButton = screen.getByRole("button", { name: /enter/i });
@@ -365,7 +390,11 @@ describe("Copy Room Link Functionality", () => {
       { initialEntries: ["/room/TEST1234"] }
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     const copyButton = screen.getByRole("button", { name: /copy link/i });
     fireEvent.click(copyButton);
@@ -396,7 +425,11 @@ describe("Copy Room Link Functionality", () => {
       { initialEntries: ["/room/TEST1234"] }
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     const copyButton = screen.getByRole("button", { name: /copy link/i });
     fireEvent.click(copyButton);
@@ -422,7 +455,11 @@ describe("Form Validation", () => {
       { initialEntries: ["/"] }
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <CommandPaletteProvider>
+        <RouterProvider router={router} />
+      </CommandPaletteProvider>
+    );
 
     const enterButton = screen.getByRole("button", { name: /enter/i });
     fireEvent.click(enterButton);
