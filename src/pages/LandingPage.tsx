@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { WavyBackground } from "@/components/ui/wavy-background";
 import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
 import Header from "@/components/Header";
+import { useCommandPalette } from "@/contexts/CommandPaletteContext";
 
 /**
  * Landing Page Component
@@ -17,7 +18,8 @@ import Header from "@/components/Header";
  * Manages loading state for room creation flow with LoadingScreen overlay.
  */
 export function LandingPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { isCreateRoomDialogOpen, setIsCreateRoomDialogOpen } =
+    useCommandPalette();
   const [isLoading, setIsLoading] = useState(false);
   const [dbOperationComplete, setDbOperationComplete] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -50,11 +52,11 @@ export function LandingPage() {
   // Handle room creation start
   const handleRoomCreationStart = useCallback((roomName: string) => {
     setPreservedRoomName(roomName);
-    setIsDialogOpen(false);
+    setIsCreateRoomDialogOpen(false);
     setIsLoading(true);
     setDbOperationComplete(false);
     setLoadingError(null);
-  }, []);
+  }, [setIsCreateRoomDialogOpen]);
 
   // Handle room creation success
   const handleRoomCreationSuccess = useCallback((roomCode: string) => {
@@ -70,13 +72,13 @@ export function LandingPage() {
     setLoadingError(error);
     toast.error(error);
     // Reopen dialog with preserved room name
-    setIsDialogOpen(true);
-  }, []);
+    setIsCreateRoomDialogOpen(true);
+  }, [setIsCreateRoomDialogOpen]);
 
   // Reset error when dialog opens
   const handleDialogOpenChange = useCallback(
     (open: boolean) => {
-      setIsDialogOpen(open);
+      setIsCreateRoomDialogOpen(open);
       if (open) {
         setLoadingError(null);
       } else {
@@ -86,19 +88,19 @@ export function LandingPage() {
         }
       }
     },
-    [isLoading]
+    [isLoading, setIsCreateRoomDialogOpen]
   );
 
   return (
     <div className="bg-black">
-      {!isDialogOpen && (
+      {!isCreateRoomDialogOpen && (
         <WavyBackground className="mx-auto flex flex-col">
           <Header />
           <TypewriterEffectSmooth words={tagline} />
           <Button
             size="lg"
             variant="outline"
-            onClick={() => setIsDialogOpen(true)}
+            onClick={() => setIsCreateRoomDialogOpen(true)}
             className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 min-w-[400px] self-center rounded-full border-2"
           >
             Enter
@@ -107,7 +109,7 @@ export function LandingPage() {
       )}
 
       <CreateRoomDialog
-        open={isDialogOpen}
+        open={isCreateRoomDialogOpen}
         onOpenChange={handleDialogOpenChange}
         onRoomCreationStart={handleRoomCreationStart}
         onRoomCreationSuccess={handleRoomCreationSuccess}

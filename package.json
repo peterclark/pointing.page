@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "supabase:start": "npx supabase start",
+    "supabase:start": "npx supabase@latest start",
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",
     "supabase:use-local": "bash scripts/use-local-supabase.sh",
