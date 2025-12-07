@@ -220,6 +220,64 @@ const participantId = getParticipantId(); // from localStorage
 const currentParticipant = participants.find(p => p.id === participantId);
 ```
 
+### Social Authentication Pattern
+**Location**: `src/pages/ProfilePage.tsx`, `src/components/login-form.tsx`, `src/components/AppMenu.tsx`
+
+OAuth-based authentication using Google and Github providers via Supabase:
+
+**Authentication Flow**:
+1. Unauthenticated users see LoginForm component with Google and Github buttons
+2. OAuth redirect to provider for authorization
+3. Callback to landing page (/) after successful auth
+4. Automatic account linking: anonymous localStorage participant ID → authenticated user_id
+5. Profile creation with OAuth metadata (display_name, email, avatar_url)
+
+**Key Components**:
+- **LoginForm**: Social auth buttons with Google and Github providers
+  - Passes `display_name` from localStorage as OAuth metadata
+  - Redirects to landing page (/) on success
+  - Handles OAuth errors gracefully with toast notifications
+
+- **ProfilePage**: Conditional rendering based on auth state
+  - Unauthenticated: Shows LoginForm with social auth options
+  - Authenticated: Shows profile with avatar, email (read-only), and editable display name
+  - Auto-links anonymous participants on first auth (via `linkingAttemptedRef`)
+
+- **AppMenu**: Hamburger menu with conditional trigger
+  - Unauthenticated: Shows MenuIcon (three bars)
+  - Authenticated: Shows user's avatar from OAuth provider
+  - Conditional menu items: "Sign In" when unauthenticated, "Log out" when authenticated
+
+**OAuth Metadata Sources**:
+- **Google**: `user.user_metadata.avatar_url` or `user.user_metadata.picture`
+- **Github**: `user.user_metadata.avatar_url`
+- **Display Name**: `user.user_metadata.display_name` or `user.user_metadata.full_name`
+- **Email**: `user.email` (always read-only from OAuth provider)
+
+**Account Linking**:
+```typescript
+// On first authentication, link anonymous participants to user
+if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
+  const localStorageId = getParticipantId();
+  if (localStorageId) {
+    await linkParticipantsToUser(localStorageId, user.id);
+  }
+}
+```
+
+**Setup Requirements**:
+- Configure OAuth providers in Supabase dashboard (see OAUTH_SETUP.md)
+- Set site URL and redirect URLs in Supabase Authentication settings
+- Google: Requires Google Cloud Project OAuth credentials
+- Github: Requires Github OAuth App configuration
+
+**Anonymous User Preservation**:
+- Authentication is optional for using the app
+- Anonymous users can join rooms, vote, and participate fully
+- Authentication only required for features like room history and saved preferences
+- localStorage participant ID system unchanged
+
+
 ## Database Schema Key Points
 
 ### Tables

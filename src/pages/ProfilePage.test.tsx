@@ -2,10 +2,8 @@
  * Tests for ProfilePage component
  *
  * Focused tests covering:
- * - Renders account creation form when unauthenticated
- * - Pre-fills name from localStorage
- * - Sends magic link on form submission
- * - Displays authenticated profile with editable name
+ * - Component structure is preserved after social auth migration
+ * - Authenticated profile with editable name
  * - Updates profile name successfully
  */
 
@@ -16,7 +14,6 @@ import { ProfilePage } from "./ProfilePage";
 import * as useAuthModule from "@/hooks/useAuth";
 import * as queries from "@/lib/supabase/queries";
 import * as utils from "@/lib/utils";
-import { supabase } from "@/lib/supabase/client";
 
 // Mock modules
 vi.mock("@/hooks/useAuth");
@@ -33,8 +30,29 @@ vi.mock("@/lib/utils", async () => {
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
     auth: {
-      signInWithOtp: vi.fn(),
+      signInWithOAuth: vi.fn(),
     },
+  },
+  createClient: vi.fn(() => ({
+    auth: {
+      signInWithOAuth: vi.fn(),
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: null },
+        error: null,
+      }),
+    },
+  })),
+}));
+vi.mock("@/components/login-form", () => ({
+  LoginForm: () => <div>Login Form</div>,
+}));
+vi.mock("@/components/current-user-avatar", () => ({
+  CurrentUserAvatar: () => <div>Avatar</div>,
+}));
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -46,8 +64,8 @@ describe("ProfilePage", () => {
     Storage.prototype.removeItem = vi.fn();
   });
 
-  describe("Unauthenticated State", () => {
-    it("should render account creation form", () => {
+  describe("Component Structure", () => {
+    it("should render unauthenticated view with Card structure", () => {
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         user: null,
         session: null,
@@ -55,28 +73,24 @@ describe("ProfilePage", () => {
         isLoading: false,
       });
 
-      vi.mocked(utils.getParticipantName).mockReturnValue(null);
-
       render(
         <BrowserRouter>
           <ProfilePage />
         </BrowserRouter>
       );
 
+      // Verify Card structure is preserved
       expect(screen.getByText("Create Account")).toBeInTheDocument();
-      expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByText(/sign in with google or github/i)).toBeInTheDocument();
     });
 
-    it("should pre-fill name from localStorage", () => {
+    it("should render loading state", () => {
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         user: null,
         session: null,
         isAuthenticated: false,
-        isLoading: false,
+        isLoading: true,
       });
-
-      vi.mocked(utils.getParticipantName).mockReturnValue("John Doe");
 
       render(
         <BrowserRouter>
@@ -84,50 +98,7 @@ describe("ProfilePage", () => {
         </BrowserRouter>
       );
 
-      const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement;
-      expect(nameInput.value).toBe("John Doe");
-    });
-
-    it("should send magic link on form submission", async () => {
-      vi.mocked(useAuthModule.useAuth).mockReturnValue({
-        user: null,
-        session: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-
-      vi.mocked(utils.getParticipantName).mockReturnValue(null);
-
-      vi.mocked(supabase.auth.signInWithOtp).mockResolvedValue({
-        data: {},
-        error: null,
-      } as any);
-
-      render(
-        <BrowserRouter>
-          <ProfilePage />
-        </BrowserRouter>
-      );
-
-      const nameInput = screen.getByLabelText(/name/i);
-      const emailInput = screen.getByLabelText(/email/i);
-      const submitButton = screen.getByRole("button", { name: /send verification link/i });
-
-      fireEvent.change(nameInput, { target: { value: "Jane Smith" } });
-      fireEvent.change(emailInput, { target: { value: "jane@example.com" } });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(supabase.auth.signInWithOtp).toHaveBeenCalledWith({
-          email: "jane@example.com",
-          options: {
-            emailRedirectTo: expect.stringContaining("/profile"),
-            data: {
-              display_name: "Jane Smith",
-            },
-          },
-        });
-      });
+      expect(screen.getByText("Loading...")).toBeInTheDocument();
     });
   });
 

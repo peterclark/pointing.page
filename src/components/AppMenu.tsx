@@ -24,12 +24,15 @@ import {
 import { useTheme } from "@/components/theme-provider";
 import { useNavigate } from "react-router-dom";
 import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { useAuth } from "@/hooks/useAuth";
+import { CurrentUserAvatar } from "@/components/current-user-avatar";
 import { signOut } from "@/lib/supabase/auth";
 import { toast } from "sonner";
 
 export function AppMenu() {
   const { setTheme } = useTheme();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const { registerCommand, showHelp, openCreateRoomDialog } =
     useCommandPalette();
   const [isOpen, setIsOpen] = useState(false);
@@ -149,36 +152,31 @@ export function AppMenu() {
     <div className="fixed top-0 left-0 p-4 z-10">
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            <MenuIcon />
+          <Button variant="link" size="icon">
+            {isAuthenticated ? <CurrentUserAvatar /> : <MenuIcon />}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="start">
+          {/* Sign In menu item for unauthenticated users */}
+          {!isAuthenticated && (
+            <>
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                Sign In
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+
           <DropdownMenuItem onClick={() => navigate("/")}>
             Home
             <DropdownMenuShortcut>⌘K H</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={() => navigate("/profile")}>
-              Profile
+              Account
               <DropdownMenuShortcut>⌘K P</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => toast.info("Billing page coming soon!")}
-            >
-              Billing
-              <DropdownMenuShortcut>⌘K B</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => toast.info("Settings page coming soon!")}
-            >
-              Settings
-              <DropdownMenuShortcut>⌘K S</DropdownMenuShortcut>
-            </DropdownMenuItem>
           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>Rooms</DropdownMenuSubTrigger>
@@ -222,11 +220,17 @@ export function AppMenu() {
             Keyboard shortcuts
             <DropdownMenuShortcut>⌘K ?</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOutAndNavigate("/")}>
-            Log out
-            <DropdownMenuShortcut>⌘K Q</DropdownMenuShortcut>
-          </DropdownMenuItem>
+
+          {/* Log out menu item only for authenticated users */}
+          {isAuthenticated && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => signOutAndNavigate("/")}>
+                Log out
+                <DropdownMenuShortcut>⌘K Q</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

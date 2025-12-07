@@ -1,14 +1,14 @@
 /**
  * ProfilePage Component
  *
- * Displays account creation form for unauthenticated users
+ * Displays social authentication options for unauthenticated users
  * and profile management for authenticated users.
  *
  * Features:
- * - Unauthenticated: Name + email form with magic link authentication
- * - Authenticated: Display name editing, read-only email
- * - Automatic account linking after magic link verification
- * - Pre-fills name from localStorage
+ * - Unauthenticated: Social auth with Google and Github
+ * - Authenticated: Display name editing, read-only email, OAuth profile picture
+ * - Automatic account linking after OAuth authentication
+ * - Pre-fills name from localStorage for OAuth metadata
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -19,10 +19,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoginForm } from "@/components/login-form";
+import { CurrentUserAvatar } from "@/components/current-user-avatar";
 import {
-  accountCreationSchema,
   profileUpdateSchema,
-  type AccountCreationFormData,
   type ProfileUpdateFormData,
 } from "@/lib/schemas";
 import {
@@ -31,7 +31,6 @@ import {
   updateProfile,
   linkParticipantsToUser,
 } from "@/lib/supabase/queries";
-import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getParticipantName,
@@ -47,19 +46,17 @@ import Header from "@/components/Header";
 export function ProfilePage() {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
 
   // Track if account linking has been attempted for this user
   const linkingAttemptedRef = useRef<string | null>(null);
 
-  // Handle magic link verification and account linking
+  // Handle OAuth callback and account linking
   useEffect(() => {
     if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
       linkingAttemptedRef.current = user.id;
 
-      // Check if this is a new login (from magic link)
       const handleAccountLinking = async () => {
         try {
           setIsLinking(true);
@@ -68,14 +65,15 @@ export function ProfilePage() {
           const existingProfile = await getProfile(user.id);
 
           if (!existingProfile) {
-            // Get pending name from localStorage
-            const pendingName =
-              localStorage.getItem("pending_profile_name") ||
+            // Get display name from OAuth metadata or localStorage
+            const displayName =
+              user.user_metadata?.display_name ||
+              user.user_metadata?.full_name ||
               getParticipantName() ||
               "User";
 
             // Create profile
-            await createProfile(user.id, pendingName);
+            await createProfile(user.id, displayName);
 
             // Link anonymous participants to this user
             const localStorageId = getParticipantId();
@@ -91,7 +89,7 @@ export function ProfilePage() {
               }
             }
 
-            // Clear pending name
+            // Clear pending name (if any)
             localStorage.removeItem("pending_profile_name");
 
             toast.success("Email verified successfully!");
@@ -127,8 +125,6 @@ export function ProfilePage() {
   if (!isAuthenticated) {
     return (
       <UnauthenticatedView
-        emailSent={emailSent}
-        setEmailSent={setEmailSent}
         isSubmitting={isSubmitting}
         setIsSubmitting={setIsSubmitting}
       />
@@ -147,82 +143,15 @@ export function ProfilePage() {
 }
 
 /**
- * Account creation form for unauthenticated users
+ * Social authentication view for unauthenticated users
  */
 function UnauthenticatedView({
-  emailSent,
-  setEmailSent,
   isSubmitting,
   setIsSubmitting,
 }: {
-  emailSent: boolean;
-  setEmailSent: (sent: boolean) => void;
   isSubmitting: boolean;
   setIsSubmitting: (submitting: boolean) => void;
 }) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<AccountCreationFormData>({
-    resolver: zodResolver(accountCreationSchema),
-    defaultValues: {
-      name: getParticipantName() || "",
-      email: "",
-    },
-  });
-
-  const onSubmit = async (data: AccountCreationFormData) => {
-    setIsSubmitting(true);
-
-    try {
-      // Store name in localStorage for account linking
-      localStorage.setItem("pending_profile_name", data.name);
-
-      // Send magic link with display name in user metadata
-      // This ensures the database trigger creates the profile with the correct name
-      const { error } = await supabase.auth.signInWithOtp({
-        email: data.email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/profile`,
-          data: {
-            display_name: data.name,
-          },
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      setEmailSent(true);
-      toast.success("Check your email for verification link");
-    } catch (error) {
-      console.error("[ProfilePage] Magic link error:", error);
-      toast.error("Failed to send verification email. Please try again.");
-      setIsSubmitting(false);
-    }
-  };
-
-  if (emailSent) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-md">
-        <Card className="p-6">
-          <div className="text-center space-y-4">
-            <h2 className="text-2xl font-semibold">Check your email</h2>
-            <p className="text-muted-foreground">
-              We've sent a verification link to your email. Click the link to
-              verify your account.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              The link will expire in 60 minutes.
-            </p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
       <Header />
@@ -230,54 +159,13 @@ function UnauthenticatedView({
         <div className="text-center sm:text-left">
           <h2 className="text-2xl font-semibold">Create Account</h2>
           <p className="text-muted-foreground mt-1">
-            Enter your name and email to get started
+            Sign in with Google or Github to get started
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
-          {/* Name Input */}
-          <div className="space-y-2">
-            <Label htmlFor="name">
-              Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="name"
-              {...register("name")}
-              disabled={isSubmitting}
-              placeholder="Enter your name"
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-
-          {/* Email Input */}
-          <div className="space-y-2">
-            <Label htmlFor="email">
-              Email <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              {...register("email")}
-              disabled={isSubmitting}
-              placeholder="your@email.com"
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isSubmitting}
-            className="w-full"
-          >
-            {isSubmitting ? "Sending..." : "Send Verification Link"}
-          </Button>
-        </form>
+        <div className="mt-6">
+          <LoginForm />
+        </div>
       </Card>
     </div>
   );
@@ -358,6 +246,11 @@ function AuthenticatedView({
     <div className="container mx-auto px-4 py-8 max-w-md">
       <Header />
       <Card className="p-6 mt-6">
+        {/* User Avatar */}
+        <div className="flex justify-center mb-6">
+          <CurrentUserAvatar />
+        </div>
+
         <div className="text-center sm:text-left">
           <h2 className="text-2xl font-semibold">Profile</h2>
           <p className="text-muted-foreground mt-1">
