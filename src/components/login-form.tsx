@@ -3,7 +3,6 @@ import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getParticipantName } from "@/lib/utils";
 
 export function LoginForm({
   className,
@@ -17,24 +16,18 @@ export function LoginForm({
     setError(null);
 
     try {
-      // Get display name from localStorage for OAuth metadata
-      const displayName = getParticipantName() || undefined;
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/`,
-          data: displayName
-            ? {
-                display_name: displayName,
-              }
-            : undefined,
         },
       });
 
       if (error) throw error;
 
       // OAuth redirect will happen automatically, no need to manually redirect
+      // Note: Display name will come from OAuth provider's metadata (user.user_metadata.full_name)
+      // and account linking in ProfilePage will handle fallback to localStorage if needed
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";

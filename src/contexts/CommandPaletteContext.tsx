@@ -1,6 +1,5 @@
 import {
   createContext,
-  useContext,
   useState,
   useCallback,
   type ReactNode,
@@ -11,7 +10,7 @@ import {
   type ShortcutCommand,
 } from "@/hooks/useKeyboardShortcuts";
 
-interface CommandPaletteContextValue {
+export interface CommandPaletteContextValue {
   isWaiting: boolean;
   commands: ShortcutCommand[];
   registerCommand: (command: ShortcutCommand) => () => void;
@@ -25,7 +24,8 @@ interface CommandPaletteContextValue {
   openCreateRoomDialog: () => void;
 }
 
-const CommandPaletteContext = createContext<
+// eslint-disable-next-line react-refresh/only-export-components
+export const CommandPaletteContext = createContext<
   CommandPaletteContextValue | undefined
 >(undefined);
 
@@ -120,17 +120,4 @@ export function CommandPaletteProvider({
       {children}
     </CommandPaletteContext.Provider>
   );
-}
-
-/**
- * Hook to access the command palette context
- */
-export function useCommandPalette() {
-  const context = useContext(CommandPaletteContext);
-  if (context === undefined) {
-    throw new Error(
-      "useCommandPalette must be used within a CommandPaletteProvider"
-    );
-  }
-  return context;
 }

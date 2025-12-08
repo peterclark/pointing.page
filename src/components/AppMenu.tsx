@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
@@ -23,7 +22,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useNavigate } from "react-router-dom";
-import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useAuth } from "@/hooks/useAuth";
 import { CurrentUserAvatar } from "@/components/current-user-avatar";
 import { signOut } from "@/lib/supabase/auth";
@@ -32,10 +31,23 @@ import { toast } from "sonner";
 export function AppMenu() {
   const { setTheme } = useTheme();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { registerCommand, showHelp, openCreateRoomDialog } =
     useCommandPalette();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Sign out and navigate helper function
+  const signOutAndNavigate = useCallback(
+    async (page: string) => {
+      try {
+        await signOut();
+        navigate(page);
+      } catch (error) {
+        console.error("Failed to log out:", error);
+      }
+    },
+    [navigate]
+  );
 
   // Add keyboard shortcut for ⌘/ to toggle menu
   useEffect(() => {
@@ -137,16 +149,14 @@ export function AppMenu() {
     return () => {
       cleanups.forEach((cleanup) => cleanup());
     };
-  }, [navigate, setTheme, registerCommand, showHelp, openCreateRoomDialog]);
-
-  const signOutAndNavigate = async (page: string) => {
-    try {
-      await signOut();
-      navigate(page);
-    } catch (error) {
-      console.error("Failed to log out:", error);
-    }
-  };
+  }, [
+    navigate,
+    setTheme,
+    registerCommand,
+    showHelp,
+    openCreateRoomDialog,
+    signOutAndNavigate,
+  ]);
 
   return (
     <div className="fixed top-0 left-0 p-4 z-10">
@@ -216,7 +226,7 @@ export function AppMenu() {
           >
             Support
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => showHelp()}>
             Keyboard shortcuts
             <DropdownMenuShortcut>⌘K ?</DropdownMenuShortcut>
           </DropdownMenuItem>

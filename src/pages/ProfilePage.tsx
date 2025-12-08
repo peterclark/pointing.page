@@ -21,10 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoginForm } from "@/components/login-form";
 import { CurrentUserAvatar } from "@/components/current-user-avatar";
-import {
-  profileUpdateSchema,
-  type ProfileUpdateFormData,
-} from "@/lib/schemas";
+import { profileUpdateSchema, type ProfileUpdateFormData } from "@/lib/schemas";
 import {
   getProfile,
   createProfile,
@@ -123,12 +120,7 @@ export function ProfilePage() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <UnauthenticatedView
-        isSubmitting={isSubmitting}
-        setIsSubmitting={setIsSubmitting}
-      />
-    );
+    return <UnauthenticatedView />;
   }
 
   return (
@@ -145,13 +137,7 @@ export function ProfilePage() {
 /**
  * Social authentication view for unauthenticated users
  */
-function UnauthenticatedView({
-  isSubmitting,
-  setIsSubmitting,
-}: {
-  isSubmitting: boolean;
-  setIsSubmitting: (submitting: boolean) => void;
-}) {
+function UnauthenticatedView() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
       <Header />

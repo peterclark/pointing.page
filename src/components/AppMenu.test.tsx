@@ -20,7 +20,7 @@ vi.mock("@/hooks/useAuth");
 vi.mock("@/components/theme-provider", () => ({
   useTheme: () => ({ setTheme: vi.fn() }),
 }));
-vi.mock("@/contexts/CommandPaletteContext", () => ({
+vi.mock("@/hooks/useCommandPalette", () => ({
   useCommandPalette: () => ({
     registerCommand: vi.fn(() => vi.fn()),
     showHelp: vi.fn(),

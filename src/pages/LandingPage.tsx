@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { WavyBackground } from "@/components/ui/wavy-background";
 import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
 import Header from "@/components/Header";
-import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
 
 /**
  * Landing Page Component

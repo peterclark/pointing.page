@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
 
 /**
  * Command Palette Indicator
