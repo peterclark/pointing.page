@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { WavyBackground } from "@/components/ui/wavy-background";
 import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
 import Header from "@/components/Header";
-import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
 
 /**
  * Landing Page Component
@@ -50,13 +50,16 @@ export function LandingPage() {
   }, [navigate]);
 
   // Handle room creation start
-  const handleRoomCreationStart = useCallback((roomName: string) => {
-    setPreservedRoomName(roomName);
-    setIsCreateRoomDialogOpen(false);
-    setIsLoading(true);
-    setDbOperationComplete(false);
-    setLoadingError(null);
-  }, [setIsCreateRoomDialogOpen]);
+  const handleRoomCreationStart = useCallback(
+    (roomName: string) => {
+      setPreservedRoomName(roomName);
+      setIsCreateRoomDialogOpen(false);
+      setIsLoading(true);
+      setDbOperationComplete(false);
+      setLoadingError(null);
+    },
+    [setIsCreateRoomDialogOpen]
+  );
 
   // Handle room creation success
   const handleRoomCreationSuccess = useCallback((roomCode: string) => {
@@ -66,14 +69,17 @@ export function LandingPage() {
   }, []);
 
   // Handle room creation error
-  const handleRoomCreationError = useCallback((error: string) => {
-    setIsLoading(false);
-    setDbOperationComplete(false);
-    setLoadingError(error);
-    toast.error(error);
-    // Reopen dialog with preserved room name
-    setIsCreateRoomDialogOpen(true);
-  }, [setIsCreateRoomDialogOpen]);
+  const handleRoomCreationError = useCallback(
+    (error: string) => {
+      setIsLoading(false);
+      setDbOperationComplete(false);
+      setLoadingError(error);
+      toast.error(error);
+      // Reopen dialog with preserved room name
+      setIsCreateRoomDialogOpen(true);
+    },
+    [setIsCreateRoomDialogOpen]
+  );
 
   // Reset error when dialog opens
   const handleDialogOpenChange = useCallback(

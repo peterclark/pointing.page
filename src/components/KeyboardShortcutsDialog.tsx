@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowRight } from "lucide-react";
-import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
 
 /**
  * Keyboard Shortcuts Help Dialog

@@ -149,30 +149,6 @@ export const profileNameSchema = z
   .max(50, "Name must be 50 characters or less");
 
 /**
- * Email validation schema
- * - Required field
- * - Must be valid email format
- */
-export const emailSchema = z
-  .string()
-  .email("Please enter a valid email address");
-
-/**
- * Account creation form schema
- * Used for magic link authentication signup
- */
-export const accountCreationSchema = z.object({
-  name: profileNameSchema,
-  email: emailSchema,
-});
-
-/**
- * TypeScript type inferred from accountCreationSchema
- * Use this type for account creation form data typing
- */
-export type AccountCreationFormData = z.infer<typeof accountCreationSchema>;
-
-/**
  * Profile update form schema
  * Used for updating authenticated user profile
  */

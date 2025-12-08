@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
@@ -23,16 +22,32 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useNavigate } from "react-router-dom";
-import { useCommandPalette } from "@/contexts/CommandPaletteContext";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
+import { useAuth } from "@/hooks/useAuth";
+import { CurrentUserAvatar } from "@/components/current-user-avatar";
 import { signOut } from "@/lib/supabase/auth";
 import { toast } from "sonner";
 
 export function AppMenu() {
   const { setTheme } = useTheme();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { registerCommand, showHelp, openCreateRoomDialog } =
     useCommandPalette();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Sign out and navigate helper function
+  const signOutAndNavigate = useCallback(
+    async (page: string) => {
+      try {
+        await signOut();
+        navigate(page);
+      } catch (error) {
+        console.error("Failed to log out:", error);
+      }
+    },
+    [navigate]
+  );
 
   // Add keyboard shortcut for ⌘/ to toggle menu
   useEffect(() => {
@@ -134,51 +149,44 @@ export function AppMenu() {
     return () => {
       cleanups.forEach((cleanup) => cleanup());
     };
-  }, [navigate, setTheme, registerCommand, showHelp, openCreateRoomDialog]);
-
-  const signOutAndNavigate = async (page: string) => {
-    try {
-      await signOut();
-      navigate(page);
-    } catch (error) {
-      console.error("Failed to log out:", error);
-    }
-  };
+  }, [
+    navigate,
+    setTheme,
+    registerCommand,
+    showHelp,
+    openCreateRoomDialog,
+    signOutAndNavigate,
+  ]);
 
   return (
     <div className="fixed top-0 left-0 p-4 z-10">
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            <MenuIcon />
+          <Button variant="link" size="icon">
+            {isAuthenticated ? <CurrentUserAvatar /> : <MenuIcon />}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="start">
+          {/* Sign In menu item for unauthenticated users */}
+          {!isAuthenticated && (
+            <>
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                Sign In
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+
           <DropdownMenuItem onClick={() => navigate("/")}>
             Home
             <DropdownMenuShortcut>⌘K H</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={() => navigate("/profile")}>
-              Profile
+              Account
               <DropdownMenuShortcut>⌘K P</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => toast.info("Billing page coming soon!")}
-            >
-              Billing
-              <DropdownMenuShortcut>⌘K B</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => toast.info("Settings page coming soon!")}
-            >
-              Settings
-              <DropdownMenuShortcut>⌘K S</DropdownMenuShortcut>
-            </DropdownMenuItem>
           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>Rooms</DropdownMenuSubTrigger>
@@ -218,15 +226,21 @@ export function AppMenu() {
           >
             Support
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => showHelp()}>
             Keyboard shortcuts
             <DropdownMenuShortcut>⌘K ?</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOutAndNavigate("/")}>
-            Log out
-            <DropdownMenuShortcut>⌘K Q</DropdownMenuShortcut>
-          </DropdownMenuItem>
+
+          {/* Log out menu item only for authenticated users */}
+          {isAuthenticated && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => signOutAndNavigate("/")}>
+                Log out
+                <DropdownMenuShortcut>⌘K Q</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

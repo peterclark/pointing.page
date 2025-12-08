@@ -48,7 +48,7 @@
 
 20. [ ] TBD
 
-21. [ ] Social Logins - Allow login via Github and Google, remove email login option / magic link to remove need for SMTP server.
+21. [x] Social Logins - Allow login via Github and Google, remove email login option / magic link to remove need for SMTP server.
 
 22. [ ] Mobile Responsive Design — Optimize UI for mobile devices with touch-friendly voting interface, responsive layouts, and progressive web app capabilities for installation `M`
 
