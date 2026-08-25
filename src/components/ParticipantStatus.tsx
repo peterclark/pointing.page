@@ -41,7 +41,13 @@ export function ParticipantStatus({
     <div className="flex flex-wrap gap-2 items-center">
       {participants.map((participant) => {
         const vote = voteMap.get(participant.id);
-        const hasVoted = votedParticipantIds.has(participant.id);
+        // Union with the votes we can see, as a floor. `votes` is already
+        // RLS-filtered to your own plus anything revealed, so this can never
+        // surface a status the viewer was not entitled to — but it keeps your
+        // own pill lit if receipts are unavailable, which happens in a Netlify
+        // deploy preview (new client, production database, migration not yet
+        // applied) and briefly on merge before the migration lands.
+        const hasVoted = votedParticipantIds.has(participant.id) || !!vote;
 
         return (
           <Badge

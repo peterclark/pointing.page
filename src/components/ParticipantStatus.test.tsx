@@ -257,4 +257,28 @@ describe("ParticipantStatus", () => {
     expect(screen.getByText("8")).toBeInTheDocument();
   });
 
+
+  it("falls back to visible votes when receipts are unavailable", () => {
+    // A deploy preview runs new client code against the production database,
+    // where the vote_receipts migration has not been applied. Without a floor
+    // the board shows nobody as having voted, including yourself.
+    render(
+      <ParticipantStatus
+        participants={mockParticipants}
+        votes={[mockVotes[0]]}
+        votedParticipantIds={new Set<string>()}
+        isRevealed={false}
+      />
+    );
+
+    const badge = (name: RegExp) =>
+      screen.getByText(name).closest("[class*='gap-1.5']");
+
+    expect(badge(/alice/i)?.querySelector(".lucide-circle-check")).toBeTruthy();
+    // Bob and Carol are still unknown, which is the honest answer.
+    expect(badge(/bob/i)?.querySelector(".lucide-circle-check")).toBeFalsy();
+    // And the fallback still leaks no estimate.
+    expect(screen.queryByText("5")).not.toBeInTheDocument();
+  });
+
 });
