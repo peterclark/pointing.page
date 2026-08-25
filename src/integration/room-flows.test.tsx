@@ -6,11 +6,14 @@ import { ActiveRoomPage } from "@/pages/ActiveRoomPage";
 import { JoinRoomHandler } from "@/pages/JoinRoomHandler";
 import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
 import * as queries from "@/lib/supabase/queries";
+import { useAuth } from "@/hooks/useAuth";
+import { mockAuthState } from "@/tests/mock-auth";
 import * as utils from "@/lib/utils";
 import { toast } from "sonner";
 
 // Mock all external dependencies
 vi.mock("@/lib/supabase/queries");
+vi.mock("@/hooks/useAuth");
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -57,6 +60,7 @@ describe("Room Creation Flow Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
 
     // Mock clipboard API
     Object.defineProperty(navigator, "clipboard", {
@@ -70,6 +74,7 @@ describe("Room Creation Flow Integration", () => {
 
   afterEach(() => {
     localStorage.clear();
+    vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
   });
 
   it.skip("completes full room creation workflow from landing to active room", async () => {
@@ -228,6 +233,7 @@ describe("Join Room Flow Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
   });
 
   it.skip("successfully joins valid room via URL", async () => {
@@ -305,6 +311,7 @@ describe("localStorage Persistence", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
   });
 
   it("generates participant_id once and persists across calls", () => {
@@ -446,7 +453,8 @@ describe("Copy Room Link Functionality", () => {
 describe("Form Validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear(); // Ensure no pre-filled name
+    localStorage.clear();
+    vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" })); // Ensure no pre-filled name
   });
 
   it("disables point scale buttons until participant name is entered", async () => {

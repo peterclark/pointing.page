@@ -211,19 +211,21 @@ export async function updateRoom(
  * - If this is the first participant, they become the leader
  *
  * @param roomId - UUID of the room to join
- * @param userId - UUID of the authenticated user (nullable for localStorage-based users)
+ * @param userId - UUID of the current user. Required: `participants_insert`
+ *   checks `user_id = auth.uid()`, so a row cannot be created for anyone else.
  * @param name - Display name for this participant in the room
  * @returns The participant record (existing or newly created)
  * @throws DatabaseError if join fails
  */
 export async function joinRoom(
   roomId: string,
-  userId: string | null,
+  userId: string,
   name: string
 ): Promise<Tables<'participants'>> {
   try {
-    // Check if user already has a participant record in this room
-    if (userId) {
+    // Every visitor holds a session (anonymous or provider), so this always
+    // runs: rejoining a room reuses your row instead of creating a duplicate.
+    {
       const { data: existing } = await supabase
         .from('participants')
         .select('*')
@@ -660,22 +662,23 @@ export async function submitVote(
 /**
  * Reveal all votes for a story
  *
- * Only the room leader can reveal votes.
- * RLS policies enforce this restriction at the database level.
+ * Goes through the `reveal_votes` database function rather than an UPDATE.
+ * RLS grants permission per row, never per column, so a leader-shaped UPDATE
+ * policy on votes would also let the leader rewrite other people's estimates.
+ * The function checks leadership and touches only `is_revealed`.
  *
  * @param storyId - UUID of the story to reveal votes for
- * @throws DatabaseError if reveal fails or user is not leader
+ * @throws DatabaseError if reveal fails or the caller is not the leader
  */
 export async function revealVotes(storyId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('votes')
-      .update({ is_revealed: true })
-      .eq('story_id', storyId);
+    const { error } = await supabase.rpc('reveal_votes', {
+      target_story_id: storyId,
+    });
 
     if (error) {
-      // RLS policy will prevent update if user is not leader
-      if (error.code === 'PGRST116') {
+      // The function raises insufficient_privilege for a non-leader caller.
+      if (error.code === '42501') {
         throw new DatabaseError(
           'Only the room leader can reveal votes',
           error.code,
@@ -904,44 +907,6 @@ export async function updateProfile(
     if (err instanceof DatabaseError) throw err;
     throw new DatabaseError(
       'Unexpected error while updating profile',
-      undefined,
-      err
-    );
-  }
-}
-
-/**
- * Link anonymous participant records to authenticated user
- *
- * Updates all participant records matching the localStorage ID
- * to set their user_id to the authenticated user's ID.
- * This preserves participation history when a user creates an account.
- *
- * @param localStorageId - The localStorage participant_id (UUID)
- * @param userId - UUID of the authenticated user
- * @throws DatabaseError if linking fails
- */
-export async function linkParticipantsToUser(
-  localStorageId: string,
-  userId: string
-): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from('participants')
-      .update({ user_id: userId })
-      .eq('id', localStorageId);
-
-    if (error) {
-      throw new DatabaseError(
-        `Failed to link participants to user: ${error.message}`,
-        error.code,
-        error
-      );
-    }
-  } catch (err) {
-    if (err instanceof DatabaseError) throw err;
-    throw new DatabaseError(
-      'Unexpected error while linking participants to user',
       undefined,
       err
     );

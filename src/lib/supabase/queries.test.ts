@@ -85,7 +85,10 @@ function queueFrom(...queries: ReturnType<typeof mockQuery>[]) {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // resetAllMocks, not clearAllMocks: the latter clears recorded calls but
+  // leaves queued mockReturnValueOnce values in place, so a stub one test
+  // queues but does not consume silently surfaces in the next.
+  vi.resetAllMocks();
 });
 
 describe("getRoomByCode", () => {
@@ -187,18 +190,19 @@ describe("updateRoom", () => {
 describe("joinRoom", () => {
   it("makes the first participant in an empty room the leader", async () => {
     const leader = { ...participant, is_leader: true };
-    const [count, insert, promote] = queueFrom(
+    const [, count, insert, promote] = queueFrom(
+      mockQuery({ data: null }),
       mockQuery({ count: 0 }),
       mockQuery({ data: leader }),
       mockQuery()
     );
 
-    await expect(joinRoom("room-1", null, "Ada")).resolves.toEqual(leader);
+    await expect(joinRoom("room-1", "user-1", "Ada")).resolves.toEqual(leader);
 
     expect(count.argsFor("select")).toEqual(["*", { count: "exact", head: true }]);
     expect(insert.argsFor("insert")?.[0]).toMatchObject({
       room_id: "room-1",
-      user_id: null,
+      user_id: "user-1",
       name: "Ada",
       is_leader: true,
       is_active: true,
@@ -208,13 +212,17 @@ describe("joinRoom", () => {
   });
 
   it("does not make a later participant the leader", async () => {
-    const [, insert] = queueFrom(mockQuery({ count: 2 }), mockQuery({ data: participant }));
+    const [, , insert] = queueFrom(
+      mockQuery({ data: null }),
+      mockQuery({ count: 2 }),
+      mockQuery({ data: participant })
+    );
 
-    await joinRoom("room-1", null, "Grace");
+    await joinRoom("room-1", "user-2", "Grace");
 
     expect(insert.argsFor("insert")?.[0]).toMatchObject({ is_leader: false });
-    // Only the count and insert queries run — no leader promotion.
-    expect(supabase.from).toHaveBeenCalledTimes(2);
+    // Lookup, count and insert — no leader promotion.
+    expect(supabase.from).toHaveBeenCalledTimes(3);
   });
 
   it("reactivates and renames an existing record instead of inserting a duplicate", async () => {
@@ -237,19 +245,30 @@ describe("joinRoom", () => {
     expect(supabase.from).toHaveBeenCalledTimes(2);
   });
 
-  it("skips the existing-record lookup for anonymous participants", async () => {
-    const [first] = queueFrom(mockQuery({ count: 1 }), mockQuery({ data: participant }));
+  it("records the joining user on the new participant row", async () => {
+    const [, , insert] = queueFrom(
+      mockQuery({ data: null }),
+      mockQuery({ count: 1 }),
+      mockQuery({ data: participant })
+    );
 
-    await joinRoom("room-1", null, "Anon");
+    await joinRoom("room-1", "user-3", "Anon");
 
-    // The first query is the participant count, not a user_id lookup.
-    expect(first.argsFor("select")).toEqual(["*", { count: "exact", head: true }]);
+    // participants_insert checks user_id = auth.uid(), so an unset user_id
+    // would be rejected outright by the database.
+    expect(insert.argsFor("insert")?.[0]).toMatchObject({ user_id: "user-3" });
   });
 
   it("wraps an insert failure in a DatabaseError", async () => {
-    queueFrom(mockQuery({ count: 0 }), mockQueryError("insert denied"));
+    queueFrom(
+      mockQuery({ data: null }),
+      mockQuery({ count: 0 }),
+      mockQueryError("insert denied")
+    );
 
-    await expect(joinRoom("room-1", null, "Ada")).rejects.toThrow(/Failed to join room/);
+    await expect(joinRoom("room-1", "user-1", "Ada")).rejects.toThrow(
+      /Failed to join room/
+    );
   });
 });
 
@@ -413,21 +432,35 @@ describe("submitVote", () => {
 });
 
 describe("revealVotes", () => {
-  it("flips is_revealed for every vote on the story", async () => {
-    const [q] = queueFrom(mockQuery());
+  it("delegates to the reveal_votes function rather than updating votes", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery() as never);
 
     await expect(revealVotes("story-1")).resolves.toBeUndefined();
 
-    expect(q.argsFor("update")).toEqual([{ is_revealed: true }]);
-    expect(q.argsFor("eq")).toEqual(["story_id", "story-1"]);
+    // RLS grants per row, never per column, so a leader-shaped UPDATE policy
+    // would also let the leader rewrite other people's estimates.
+    expect(supabase.rpc).toHaveBeenCalledWith("reveal_votes", {
+      target_story_id: "story-1",
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it("reports a leader-only violation when RLS returns PGRST116", async () => {
-    queueFrom(mockQueryError("no rows", "PGRST116"));
+  it("reports a leader-only violation when the function refuses", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQuery({ error: { message: "insufficient privilege", code: "42501" } }) as never
+    );
 
     await expect(revealVotes("story-1")).rejects.toThrow(
       /Only the room leader can reveal votes/
     );
+  });
+
+  it("wraps any other failure in a DatabaseError", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQuery({ error: { message: "connection reset", code: "08006" } }) as never
+    );
+
+    await expect(revealVotes("story-1")).rejects.toThrow(/Failed to reveal votes/);
   });
 });
 

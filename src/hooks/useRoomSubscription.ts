@@ -26,7 +26,7 @@
  * ```
  */
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import type {
   RealtimeChannel,
   RealtimePostgresChangesPayload,
@@ -69,17 +69,9 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
   const [error, setError] = useState<Error | null>(null);
   const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
 
-  // Use ref to track current stories for vote filtering
-  const storiesRef = useRef<Tables<"stories">[]>([]);
-
   // Track consecutive connection errors
   const errorCountRef = useRef<number>(0);
   const maxErrorsBeforeFailure = 3;
-
-  // Keep ref in sync with state
-  useEffect(() => {
-    storiesRef.current = stories;
-  }, [stories]);
 
   useEffect(() => {
     // Validate roomId
@@ -97,7 +89,9 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
 
     // Monitor network connection status
     const handleOnline = () => {
-      // Network restored
+      // handleOffline sets an error; nothing else clears it, so the banner used
+      // to outlive the outage that caused it.
+      if (isMounted) setError(null);
     };
 
     const handleOffline = () => {
@@ -116,34 +110,25 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     // Fetch initial data for all tables
     const fetchInitialData = async () => {
       try {
-        const [storiesResult, votesResult, participantsResult] =
-          await Promise.all([
-            supabase
-              .from("stories")
-              .select("*")
-              .eq("room_id", roomId)
-              .order("created_at", { ascending: true }),
-            supabase
-              .from("votes")
-              .select("*")
-              .in("story_id", []) // Start with empty, will be populated by subscription
-              .order("created_at", { ascending: true }),
-            supabase
-              .from("participants")
-              .select("*")
-              .eq("room_id", roomId)
-              .order("joined_at", { ascending: true }),
-          ]);
+        // Votes are not fetched here: they belong to whichever story is active,
+        // and the effect below owns loading and subscribing to exactly that set.
+        const [storiesResult, participantsResult] = await Promise.all([
+          supabase
+            .from("stories")
+            .select("*")
+            .eq("room_id", roomId)
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("participants")
+            .select("*")
+            .eq("room_id", roomId)
+            .order("joined_at", { ascending: true }),
+        ]);
 
         // Check for errors
         if (storiesResult.error) {
           throw new Error(
             `Failed to fetch stories: ${storiesResult.error.message}`
-          );
-        }
-        if (votesResult.error) {
-          throw new Error(
-            `Failed to fetch votes: ${votesResult.error.message}`
           );
         }
         if (participantsResult.error) {
@@ -155,23 +140,6 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
         // Update state only if component is still mounted
         if (isMounted) {
           setStories(storiesResult.data || []);
-
-          // Fetch votes for active story if it exists
-          const activeStory = storiesResult.data?.find((s) => s.is_active);
-          if (activeStory) {
-            const activeVotesResult = await supabase
-              .from("votes")
-              .select("*")
-              .eq("story_id", activeStory.id)
-              .order("created_at", { ascending: true });
-
-            if (activeVotesResult.data && isMounted) {
-              setVotes(activeVotesResult.data);
-            }
-          } else {
-            setVotes([]);
-          }
-
           setParticipants(participantsResult.data || []);
           setIsLoading(false);
         }
@@ -249,112 +217,11 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
                 a.created_at.localeCompare(b.created_at)
               );
             });
-
-            // If new story is active, fetch its votes
-            if (newStory.is_active) {
-              supabase
-                .from("votes")
-                .select("*")
-                .eq("story_id", newStory.id)
-                .order("created_at", { ascending: true })
-                .then(({ data }) => {
-                  if (data) setVotes(data);
-                });
-            }
           } else if (payload.eventType === "UPDATE") {
             const updatedStory = payload.new as Tables<"stories">;
             setStories((prev) =>
               prev.map((s) => (s.id === updatedStory.id ? updatedStory : s))
             );
-
-            // If story became active, fetch its votes
-            // If story became inactive, clear votes
-            if (updatedStory.is_active) {
-              supabase
-                .from("votes")
-                .select("*")
-                .eq("story_id", updatedStory.id)
-                .order("created_at", { ascending: true })
-                .then(({ data }) => {
-                  if (data) setVotes(data);
-                });
-            } else {
-              // Check if there's another active story
-              setStories((prevStories) => {
-                const hasOtherActiveStory = prevStories.some(
-                  (s) => s.id !== updatedStory.id && s.is_active
-                );
-                if (!hasOtherActiveStory) {
-                  setVotes([]);
-                }
-                return prevStories;
-              });
-            }
-          }
-        }
-      )
-      // Subscribe to votes (no filter here - we filter by active story_id in our state logic)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "votes",
-        },
-        (payload: RealtimePostgresChangesPayload<Tables<"votes">>) => {
-          // Redact unrevealed vote values from logs for security
-          const vote = (payload.new || payload.old) as Tables<"votes">;
-          const logData = vote.is_revealed
-            ? vote
-            : { ...vote, point_value: "[HIDDEN]" };
-          console.log(
-            `[useRoomSubscription] Vote ${payload.eventType}:`,
-            logData
-          );
-
-          // Only update votes if they belong to a story in this room
-          const isRelevantVote = (vote: Tables<"votes">) => {
-            return storiesRef.current.some(
-              (s) => s.id === vote.story_id && s.is_active
-            );
-          };
-
-          if (payload.eventType === "INSERT") {
-            const newVote = payload.new as Tables<"votes">;
-            if (isRelevantVote(newVote)) {
-              setVotes((prev) => {
-                const exists = prev.some((v) => v.id === newVote.id);
-                if (exists) return prev;
-                return [...prev, newVote].sort((a, b) =>
-                  a.created_at.localeCompare(b.created_at)
-                );
-              });
-            }
-          } else if (payload.eventType === "UPDATE") {
-            const updatedVote = payload.new as Tables<"votes">;
-            if (isRelevantVote(updatedVote)) {
-              setVotes((prev) => {
-                const exists = prev.some((v) => v.id === updatedVote.id);
-                if (exists) {
-                  // Update existing vote
-                  return prev.map((v) =>
-                    v.id === updatedVote.id ? updatedVote : v
-                  );
-                } else {
-                  // Add new vote (wasn't visible before due to RLS)
-                  return [...prev, updatedVote].sort((a, b) =>
-                    a.created_at.localeCompare(b.created_at)
-                  );
-                }
-              });
-            } else {
-              // Vote no longer relevant (different story or story inactive)
-              const oldVote = payload.old as Tables<"votes">;
-              setVotes((prev) => prev.filter((v) => v.id !== oldVote.id));
-            }
-          } else if (payload.eventType === "DELETE") {
-            const deletedVote = payload.old as Tables<"votes">;
-            setVotes((prev) => prev.filter((v) => v.id !== deletedVote.id));
           }
         }
       )
@@ -406,6 +273,84 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
       window.removeEventListener("offline", handleOffline);
     };
   }, [roomId]); // Only re-run when roomId changes
+
+  // Only the active story's votes are ever displayed, so that is the only set
+  // worth loading or listening to.
+  const activeStoryId = useMemo(
+    () => stories.find((s) => s.is_active)?.id ?? null,
+    [stories]
+  );
+
+  useEffect(() => {
+    if (!activeStoryId) {
+      setVotes([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    supabase
+      .from("votes")
+      .select("*")
+      .eq("story_id", activeStoryId)
+      .order("created_at", { ascending: true })
+      .then(({ data, error: fetchError }) => {
+        if (!isMounted) return;
+        if (fetchError) {
+          setError(new Error(`Failed to fetch votes: ${fetchError.message}`));
+          return;
+        }
+        setVotes(data ?? []);
+      });
+
+    // Server-side filter. Without it this subscription received every vote
+    // change in the database — every room, every story — and discarded the
+    // irrelevant ones in the browser, which both leaked other rooms' unrevealed
+    // estimates and scaled with total app usage rather than room size.
+    const channel: RealtimeChannel = supabase
+      .channel(`story:${activeStoryId}:votes`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "votes",
+          filter: `story_id=eq.${activeStoryId}`,
+        },
+        (payload: RealtimePostgresChangesPayload<Tables<"votes">>) => {
+          if (payload.eventType === "INSERT") {
+            const newVote = payload.new as Tables<"votes">;
+            setVotes((prev) =>
+              prev.some((v) => v.id === newVote.id)
+                ? prev
+                : [...prev, newVote].sort((a, b) =>
+                    a.created_at.localeCompare(b.created_at)
+                  )
+            );
+          } else if (payload.eventType === "UPDATE") {
+            const updatedVote = payload.new as Tables<"votes">;
+            setVotes((prev) =>
+              prev.some((v) => v.id === updatedVote.id)
+                ? prev.map((v) => (v.id === updatedVote.id ? updatedVote : v))
+                : // A reveal makes a vote readable that RLS previously withheld,
+                  // so it arrives as an UPDATE for a row never seen before.
+                  [...prev, updatedVote].sort((a, b) =>
+                    a.created_at.localeCompare(b.created_at)
+                  )
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deletedVote = payload.old as Tables<"votes">;
+            setVotes((prev) => prev.filter((v) => v.id !== deletedVote.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [activeStoryId]);
 
   return {
     stories,

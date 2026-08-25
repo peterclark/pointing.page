@@ -396,9 +396,11 @@ describe("Account Linking Integration", () => {
     });
   });
 
-  it("should prevent duplicate account linking attempts", async () => {
-    // Scenario: Ensure linking only happens once per user session
-
+  it("upgrades the guest profile once and does not repeat on rerender", async () => {
+    // Signing in links the provider to the existing anonymous identity, so
+    // auth.uid() is unchanged and the participant rows stay attached. What does
+    // need fixing is the display name: the trigger stamped a "Guest ..."
+    // placeholder when the anonymous session was created.
     const mockUser = {
       id: "user-333",
       email: "duplicate@example.com",
@@ -406,7 +408,7 @@ describe("Account Linking Integration", () => {
       role: "authenticated",
       created_at: "2024-01-01T00:00:00Z",
       app_metadata: {},
-      user_metadata: {},
+      user_metadata: { full_name: "Duplicate Test" },
     };
 
     vi.mocked(useAuthModule.useAuth).mockReturnValue({
@@ -420,25 +422,21 @@ describe("Account Linking Integration", () => {
         token_type: "bearer",
       },
       isAuthenticated: true,
+      isAnonymous: false,
       isLoading: false,
     });
 
-    vi.mocked(queries.getProfile).mockResolvedValue(null);
-    vi.mocked(utils.getParticipantId).mockReturnValue("local-id-789");
-
-    vi.mocked(queries.createProfile).mockResolvedValue({
+    vi.mocked(queries.getProfile).mockResolvedValue({
+      id: "profile-333",
+      user_id: "user-333",
+      display_name: "Guest 9c06613a",
+      created_at: "2024-01-01T00:00:00Z",
+    });
+    vi.mocked(queries.updateProfile).mockResolvedValue({
       id: "profile-333",
       user_id: "user-333",
       display_name: "Duplicate Test",
       created_at: "2024-01-01T00:00:00Z",
-    });
-
-    vi.mocked(queries.linkParticipantsToUser).mockResolvedValue(undefined);
-
-    Storage.prototype.getItem = vi.fn((key) => {
-      if (key === "pending_profile_name") return "Duplicate Test";
-      if (key === "participant_id") return "local-id-789";
-      return null;
     });
 
     const { rerender } = render(
@@ -447,28 +445,22 @@ describe("Account Linking Integration", () => {
       </BrowserRouter>
     );
 
-    // Wait for initial linking
     await waitFor(() => {
-      expect(queries.linkParticipantsToUser).toHaveBeenCalledTimes(1);
+      expect(queries.updateProfile).toHaveBeenCalledWith(
+        "user-333",
+        "Duplicate Test"
+      );
     });
 
-    vi.mocked(queries.getProfile).mockResolvedValue({
-      id: "profile-333",
-      user_id: "user-333",
-      display_name: "Duplicate Test",
-      created_at: "2024-01-01T00:00:00Z",
-    });
-
-    // Trigger rerender
     rerender(
       <BrowserRouter>
         <ProfilePage />
       </BrowserRouter>
     );
 
-    // Linking should NOT be called again
+    // linkingAttemptedRef keeps this to a single upgrade per user.
     await waitFor(() => {
-      expect(queries.linkParticipantsToUser).toHaveBeenCalledTimes(1);
+      expect(queries.updateProfile).toHaveBeenCalledTimes(1);
     });
   });
 });

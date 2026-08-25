@@ -205,20 +205,28 @@ Voting buttons implement optimistic updates:
 - Maintains consistency with real-time updates
 - Graceful error handling
 
-### localStorage Participant Pattern
-**Location**: `src/lib/utils.ts` - `getParticipantId()`, `getParticipantName()`
+### Anonymous Session Identity Pattern
+**Location**: `src/components/SessionGate.tsx`, `src/lib/supabase/auth.ts`
 
-Anonymous user identification via localStorage:
-- `participant_id`: UUID stored in localStorage, generated once per device
-- `participant_name`: User's display name, pre-fills forms
-- Participant records linked to localStorage ID, not authenticated users
-- Enables anonymous multi-device participation
+Identity comes from a Supabase anonymous session, not from localStorage.
+`SessionGate` calls `ensureSession()` before the router renders, so every
+visitor holds a JWT and `auth.uid()` is available to every RLS policy. The
+session persists and refreshes itself, so a returning visitor keeps the same id
+and therefore the same participant rows.
+
+- `participants.user_id`: always set, to `auth.uid()`
+- `participant_name`: still in localStorage, but only to pre-fill the join form
 
 **Lookup Pattern**:
 ```typescript
-const participantId = getParticipantId(); // from localStorage
-const currentParticipant = participants.find(p => p.id === participantId);
+const { user } = useAuth();
+const currentParticipant = participants.find(p => p.user_id === user?.id);
 ```
+
+Signing in with a provider uses `linkIdentity()` rather than
+`signInWithOAuth()`, so the guest identity is upgraded in place and the rooms
+they already joined stay attached. This needs **Manual Linking** enabled in the
+Supabase dashboard — see OAUTH_SETUP.md.
 
 ### Social Authentication Pattern
 **Location**: `src/pages/ProfilePage.tsx`, `src/components/login-form.tsx`, `src/components/AppMenu.tsx`
@@ -362,10 +370,13 @@ All components install to `src/components/ui/` per components.json:17.
 
 ### Vote Privacy (CRITICAL)
 Vote privacy is enforced at multiple layers:
-1. **Database RLS**: NOT enforced today. `votes_select` is `USING (true)`, so an
-   unrevealed `point_value` is readable straight from the REST API by anyone with
-   the anon key (which ships in the client bundle). Server-side privacy requires
-   every visitor to be signed in — see `docs/vote-privacy-limitation.md`.
+1. **Database RLS**: enforced. `votes_select` is
+   `USING (is_revealed OR owns_participant(participant_id))`, so an unrevealed
+   `point_value` is readable only by the participant who cast it — from the REST
+   API, from Realtime, from anywhere. This works because `SessionGate` signs
+   every visitor in anonymously before the first query, giving RLS an
+   `auth.uid()` to key on. Revealing goes through the leader-only
+   `reveal_votes()` function, because RLS grants per row and never per column.
 2. **Client Filtering**: `filterVisibleVotes()` ensures only visible votes rendered
 3. **UI Logic**: ParticipantStatus and VoteResults only show revealed data
 
@@ -441,7 +452,11 @@ Check Supabase Realtime settings:
 3. Check subscription channel status in browser console
 
 ### Vote Privacy Leaking
-Always filter votes using `filterVisibleVotes()` before rendering. Never pass raw votes array to UI components before reveal.
+The database no longer returns other people's unrevealed votes, so a leak here
+means either the session failed to establish (check `SessionGate`) or a
+participant row has a NULL `user_id`. `filterVisibleVotes()` is still applied as
+defence in depth, but it is no longer the only thing standing between a
+spectator and everyone's estimate.
 
 ### Build Warnings (Chunk Size)
 The 500KB chunk size warning is expected due to React + dependencies. Can be ignored for MVP. Consider code-splitting for production optimization.

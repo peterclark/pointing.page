@@ -5,7 +5,6 @@
  * - Get profile by user ID
  * - Create new profile
  * - Update profile display name
- * - Link anonymous participants to authenticated user
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -13,7 +12,6 @@ import {
   getProfile,
   createProfile,
   updateProfile,
-  linkParticipantsToUser,
   DatabaseError,
 } from "./queries";
 import { supabase } from "./client";
@@ -154,44 +152,6 @@ describe("Profile Queries", () => {
 
       expect(result).toEqual(mockProfile);
       expect(result.display_name).toBe("Updated Name");
-    });
-  });
-
-  describe("linkParticipantsToUser", () => {
-    it("should link participants to authenticated user", async () => {
-      const mockFrom = vi.fn().mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: null,
-            error: null,
-          }),
-        }),
-      });
-
-      vi.mocked(supabase.from).mockImplementation(mockFrom as any);
-
-      await expect(
-        linkParticipantsToUser("local-id-123", "user-456")
-      ).resolves.not.toThrow();
-
-      expect(mockFrom).toHaveBeenCalledWith("participants");
-    });
-
-    it("should throw DatabaseError when linking fails", async () => {
-      const mockFrom = vi.fn().mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: "Foreign key violation", code: "23503" },
-          }),
-        }),
-      });
-
-      vi.mocked(supabase.from).mockImplementation(mockFrom as any);
-
-      await expect(
-        linkParticipantsToUser("local-id-123", "invalid-user")
-      ).rejects.toThrow(DatabaseError);
     });
   });
 });

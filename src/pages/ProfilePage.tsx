@@ -26,12 +26,10 @@ import {
   getProfile,
   createProfile,
   updateProfile,
-  linkParticipantsToUser,
 } from "@/lib/supabase/queries";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getParticipantName,
-  getParticipantId,
   saveParticipantName,
 } from "@/lib/utils";
 import { toast } from "sonner";
@@ -58,41 +56,31 @@ export function ProfilePage() {
         try {
           setIsLinking(true);
 
-          // Check if profile exists
+          const oauthName =
+            user.user_metadata?.display_name ||
+            user.user_metadata?.full_name ||
+            getParticipantName() ||
+            "User";
+
           const existingProfile = await getProfile(user.id);
 
           if (!existingProfile) {
-            // Get display name from OAuth metadata or localStorage
-            const displayName =
-              user.user_metadata?.display_name ||
-              user.user_metadata?.full_name ||
-              getParticipantName() ||
-              "User";
-
-            // Create profile
-            await createProfile(user.id, displayName);
-
-            // Link anonymous participants to this user
-            const localStorageId = getParticipantId();
-            if (localStorageId) {
-              try {
-                await linkParticipantsToUser(localStorageId, user.id);
-              } catch (error) {
-                console.error(
-                  "[ProfilePage] Failed to link participants:",
-                  error
-                );
-                // Don't show error to user - linking is optional
-              }
-            }
-
-            // Clear pending name (if any)
-            localStorage.removeItem("pending_profile_name");
-
-            toast.success("Email verified successfully!");
+            // The handle_new_user trigger normally creates this; only reachable
+            // for accounts predating the trigger.
+            await createProfile(user.id, oauthName);
+          } else if (/^Guest [0-9a-f]{8}$/.test(existingProfile.display_name)) {
+            // Signing in upgrades the anonymous identity in place, so the
+            // profile still carries the placeholder the trigger assigned.
+            // Participants stay linked precisely because the uid did not change.
+            await updateProfile(user.id, oauthName);
+          } else {
+            return;
           }
+
+          localStorage.removeItem("pending_profile_name");
+          toast.success("Signed in successfully!");
         } catch (error) {
-          console.error("[ProfilePage] Error during account linking:", error);
+          console.error("[ProfilePage] Error during account setup:", error);
           toast.error("Failed to set up account. Please try again.");
         } finally {
           setIsLinking(false);

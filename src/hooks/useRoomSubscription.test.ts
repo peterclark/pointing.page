@@ -43,8 +43,8 @@ describe('useRoomSubscription', () => {
         return mockChannel;
       }),
       subscribe: vi.fn().mockImplementation((callback) => {
-        // Simulate successful subscription
-        setTimeout(() => callback('SUBSCRIBED'), 0);
+        // The votes channel subscribes without a status callback.
+        if (callback) setTimeout(() => callback('SUBSCRIBED'), 0);
         return mockChannel;
       }),
     };
@@ -93,9 +93,6 @@ describe('useRoomSubscription', () => {
       },
     ];
 
-    // Track number of calls to votes table
-    let votesCallCount = 0;
-
     // Mock initial data fetch
     const mockFrom = vi.fn().mockImplementation((table) => {
       if (table === 'stories') {
@@ -117,28 +114,14 @@ describe('useRoomSubscription', () => {
           }),
         };
       } else if (table === 'votes') {
-        votesCallCount++;
-        // First call is in Promise.all (with in filter for empty array)
-        // Second call is when active story is found
-        if (votesCallCount === 1) {
-          return {
-            select: vi.fn().mockReturnThis(),
-            in: vi.fn().mockReturnThis(),
-            order: vi.fn().mockResolvedValue({
-              data: [],
-              error: null,
-            }),
-          };
-        } else {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            order: vi.fn().mockResolvedValue({
-              data: mockVotes,
-              error: null,
-            }),
-          };
-        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({
+            data: mockVotes,
+            error: null,
+          }),
+        };
       }
 
       return {
@@ -430,4 +413,62 @@ describe('useRoomSubscription', () => {
     // Should not create a subscription
     expect(supabase.channel).not.toHaveBeenCalled();
   });
+
+  it('scopes the votes subscription to the active story', async () => {
+    const roomId = 'test-room-id';
+    const stories: Tables<'stories'>[] = [
+      {
+        id: 'story-1',
+        room_id: roomId,
+        title: 'Active',
+        description: null,
+        is_active: true,
+        final_average: null,
+        created_at: '2025-01-01T00:00:00Z',
+      },
+    ];
+
+    vi.mocked(supabase.from).mockImplementation(((table: string) => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: table === 'stories' ? stories : [],
+        error: null,
+      }),
+    })) as never);
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const voteSubscription = mockChannel.on.mock.calls.find(
+      ([, config]: [string, { table: string }]) => config.table === 'votes'
+    );
+
+    // Without this filter the subscription received every vote change in the
+    // database — every room, every story — and discarded the irrelevant ones in
+    // the browser, leaking other rooms' unrevealed estimates over the socket.
+    expect(voteSubscription).toBeDefined();
+    expect(voteSubscription![1].filter).toBe('story_id=eq.story-1');
+  });
+
+  it('does not open a votes subscription when no story is active', async () => {
+    const roomId = 'test-room-id';
+
+    vi.mocked(supabase.from).mockImplementation((() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    })) as never);
+
+    const { result } = renderHook(() => useRoomSubscription(roomId));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const voteSubscription = mockChannel.on.mock.calls.find(
+      ([, config]: [string, { table: string }]) => config.table === 'votes'
+    );
+
+    expect(voteSubscription).toBeUndefined();
+    expect(result.current.votes).toEqual([]);
+  });
+
 });
