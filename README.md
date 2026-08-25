@@ -1,5 +1,11 @@
 # Story Pointer - Planning Poker for Agile Teams
 
+[![CI](https://github.com/peterclark/pointing.page/actions/workflows/ci.yml/badge.svg)](https://github.com/peterclark/pointing.page/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpeterclark%2Fpointing.page%2Fbadges%2Fcoverage.json)](https://github.com/peterclark/pointing.page/actions/workflows/ci.yml)
+
+> These badges render publicly only once the repository is public. See
+> [docs/ci-and-badges.md](./docs/ci-and-badges.md) for the private-repo alternative.
+
 A real-time collaborative planning poker application built with React, TypeScript, Vite, and Supabase.
 
 ## Project Overview
@@ -225,11 +231,20 @@ npm run build
 # Lint the codebase
 npm run lint
 
+# Type-check without emitting
+npm run typecheck
+
 # Preview production build locally
 npm run preview
 
-# Run tests
+# Run the test suite once
 npm test
+
+# Re-run tests on change
+npm run test:watch
+
+# Run tests with a coverage report
+npm run test:coverage
 ```
 
 ## Supabase Commands
@@ -329,27 +344,44 @@ See [Real-time Subscriptions Guide](./docs/realtime-subscriptions.md#troubleshoo
 
 ## Testing
 
-The application includes comprehensive tests for database infrastructure:
+Tests come in two tiers.
+
+**Default suite** — unit, component and integration tests. Every Supabase call
+is mocked at the module boundary, so these need no credentials and no running
+services. This is what CI runs.
 
 ```bash
-# Run all tests
+# Run once (what CI runs)
 npm test
 
-# Run specific test suite
-npm test -- src/tests/01-database-schema.test.ts
+# Re-run on change
+npm run test:watch
 
-# Run tests in watch mode
-npm test -- --watch
+# With a coverage report (also enforces the thresholds in vitest.config.ts)
+npm run test:coverage
+
+# A single file
+npm test -- src/lib/utils.test.ts
 ```
 
-Test coverage:
-- Database schema constraints and indexes
-- RLS policies and access control
-- Authentication flows
-- Real-time subscriptions
-- Integration tests for common operations
+Covers: consensus and vote-privacy utilities, the Supabase query layer,
+form validation, the voting-flow components and pages, routing, auth state,
+and end-to-end room/account workflows.
 
-See test files in `/src/tests/` for complete test suite.
+**Live-database suite** (`src/tests/db/`) — exercises schema constraints,
+triggers, RLS policies and real-time channels against a real Supabase instance.
+Excluded from `npm test` and from CI because it needs infrastructure.
+
+```bash
+npm run supabase:start      # start a local stack
+npm run supabase:use-local  # point .env.local at it
+npm run test:db
+```
+
+> **Never point the live-database suite at production.** Its cleanup helper
+> deletes every room whose name begins with `Test`.
+
+See [docs/ci-and-badges.md](./docs/ci-and-badges.md) for how these run in CI.
 
 ## Contributing
 

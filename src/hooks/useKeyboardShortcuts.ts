@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export interface ShortcutCommand {
   key: string;
@@ -34,7 +34,6 @@ export function useKeyboardShortcuts(
   } = options;
 
   const [isWaiting, setIsWaiting] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * Check if the current focused element is an input field
@@ -56,19 +55,12 @@ export function useKeyboardShortcuts(
    */
   const executeCommand = useCallback(
     (key: string) => {
-      console.log('[useKeyboardShortcuts] Executing command for key:', key);
-      console.log('[useKeyboardShortcuts] Available commands:', commands.map(c => c.key));
-      const command = commands.find((cmd) => cmd.key.toLowerCase() === key.toLowerCase());
+      const command = commands.find(
+        (cmd) => cmd.key.toLowerCase() === key.toLowerCase()
+      );
       if (command) {
-        console.log('[useKeyboardShortcuts] Found command:', command.description);
         command.action();
         setIsWaiting(false);
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-      } else {
-        console.log('[useKeyboardShortcuts] No command found for key:', key);
       }
     },
     [commands]
@@ -79,11 +71,23 @@ export function useKeyboardShortcuts(
    */
   const clearWaiting = useCallback(() => {
     setIsWaiting(false);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
   }, []);
+
+  /**
+   * Auto-disarm the chord.
+   *
+   * This has to be its own effect. The keydown effect below re-runs whenever
+   * `isWaiting` flips, and its cleanup would cancel a timer started inside the
+   * handler before it ever fired — leaving the palette armed indefinitely.
+   * Here the timer is scoped to the armed state itself, so disarming (by
+   * command, Escape or unmount) cancels it as a side effect.
+   */
+  useEffect(() => {
+    if (!isWaiting) return;
+
+    const timer = setTimeout(() => setIsWaiting(false), timeout);
+    return () => clearTimeout(timer);
+  }, [isWaiting, timeout]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -101,13 +105,6 @@ export function useKeyboardShortcuts(
         // First key press: ⌘K or Ctrl+K
         event.preventDefault();
         setIsWaiting(true);
-
-        // Set timeout to clear waiting state
-        timeoutRef.current = setTimeout(() => {
-          setIsWaiting(false);
-          timeoutRef.current = null;
-        }, timeout);
-
         return;
       }
 
@@ -117,11 +114,9 @@ export function useKeyboardShortcuts(
 
         // Special case for '?' key
         const key = event.key === "?" ? "?" : event.key.toLowerCase();
-        console.log('[useKeyboardShortcuts] Second key pressed:', event.key, '-> normalized:', key);
 
         // Ignore if command/ctrl/alt are pressed (but allow shift for ? and other characters)
         if (event.metaKey || event.ctrlKey || event.altKey) {
-          console.log('[useKeyboardShortcuts] Ignoring because modifier key pressed');
           return;
         }
 
@@ -139,11 +134,8 @@ export function useKeyboardShortcuts(
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
     };
-  }, [enabled, disableInInputs, isWaiting, timeout, executeCommand, clearWaiting, isInputElement]);
+  }, [enabled, disableInInputs, isWaiting, executeCommand, clearWaiting, isInputElement]);
 
   return {
     isWaiting,

@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env.production
+
+# Test coverage output
+coverage
+*.lcov
+
+# Local badge output (published to the badges branch by CI)
+badges

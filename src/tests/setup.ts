@@ -1,32 +1,25 @@
 /**
- * Test Setup and Configuration
+ * Test Setup — unit / component / integration suites
  *
- * This file runs before all tests and sets up the testing environment.
- * It includes:
- * - Environment variable verification
- * - Global test utilities
- * - Database cleanup helpers
- * - Testing library matchers
+ * Runs before every test file in the default Vitest project.
+ *
+ * These suites never talk to a real Supabase instance: queries are mocked at
+ * the module boundary. The Supabase client module still evaluates at import
+ * time and throws when `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are
+ * missing, so we supply inert placeholders when they are not already set.
+ *
+ * Suites that DO require a live database live in `src/tests/db/` and use
+ * `vitest.db.config.ts` + `src/tests/setup.db.ts`, which fail loudly instead.
  */
 
-import { config } from 'dotenv';
 import '@testing-library/jest-dom';
 
-// Load environment variables from .env.local
-config({ path: '.env.local' });
+const PLACEHOLDER_URL = 'http://127.0.0.1:54321';
+const PLACEHOLDER_ANON_KEY = 'test-anon-key';
 
-// Verify required environment variables
-if (!process.env.VITE_SUPABASE_URL) {
-  throw new Error('VITE_SUPABASE_URL is not set. Tests require a Supabase connection.');
-}
+process.env.VITE_SUPABASE_URL ||= PLACEHOLDER_URL;
+process.env.VITE_SUPABASE_ANON_KEY ||= PLACEHOLDER_ANON_KEY;
 
-if (!process.env.VITE_SUPABASE_ANON_KEY) {
-  throw new Error('VITE_SUPABASE_ANON_KEY is not set. Tests require a Supabase connection.');
-}
-
-console.log('[Test Setup] Environment variables loaded successfully');
-console.log('[Test Setup] Supabase URL:', process.env.VITE_SUPABASE_URL);
-
-// Set test timeout warning
-console.log('[Test Setup] Test timeout: 30 seconds');
-console.log('[Test Setup] Ready to run tests...\n');
+// `import.meta.env` is what `src/lib/supabase/client.ts` actually reads.
+import.meta.env.VITE_SUPABASE_URL ||= process.env.VITE_SUPABASE_URL;
+import.meta.env.VITE_SUPABASE_ANON_KEY ||= process.env.VITE_SUPABASE_ANON_KEY;
