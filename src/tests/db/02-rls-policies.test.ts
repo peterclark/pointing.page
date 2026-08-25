@@ -73,7 +73,7 @@ describe('Row Level Security Policies', () => {
   it.skip('should allow leader to update room settings', async () => {
     // Create room with leader
     const room = await createTestRoom('Test Leader Update Room');
-    const leader = await createTestParticipant(room.id, null, 'Leader', true);
+    await createTestParticipant(room.id, null, 'Leader', true);
 
     // Leader should be able to update room (with current permissive RLS)
     const { error: leaderUpdateError } = await supabase
@@ -98,15 +98,15 @@ describe('Row Level Security Policies', () => {
   it('should control vote visibility based on is_revealed flag', async () => {
     // Create room, participants, and story
     const room = await createTestRoom('Test Vote Visibility');
-    const leader = await createTestParticipant(room.id, null, 'Leader', true);
+    await createTestParticipant(room.id, null, 'Leader', true);
     const participant1 = await createTestParticipant(room.id, null, 'Participant 1', false);
     const participant2 = await createTestParticipant(room.id, null, 'Participant 2', false);
 
     const story = await createTestStory(room.id, 'Test Story', undefined, true);
 
     // Create unrevealed votes from both participants
-    const vote1 = await createTestVote(story.id, participant1.id, '5', undefined, false);
-    const vote2 = await createTestVote(story.id, participant2.id, '8', undefined, false);
+    await createTestVote(story.id, participant1.id, '5', undefined, false);
+    await createTestVote(story.id, participant2.id, '8', undefined, false);
 
     // With current permissive RLS (USING true), all votes are visible
     // In production RLS, users would only see their own unrevealed votes
@@ -127,11 +127,11 @@ describe('Row Level Security Policies', () => {
   it('should allow leader to set is_revealed=true on votes', async () => {
     // Create room with leader and story
     const room = await createTestRoom('Test Vote Reveal');
-    const leader = await createTestParticipant(room.id, null, 'Leader', true);
+    await createTestParticipant(room.id, null, 'Leader', true);
     const participant = await createTestParticipant(room.id, null, 'Participant', false);
 
     const story = await createTestStory(room.id, 'Test Reveal Story', undefined, true);
-    const vote = await createTestVote(story.id, participant.id, '3', undefined, false);
+    await createTestVote(story.id, participant.id, '3', undefined, false);
 
     // Leader reveals votes (with current permissive RLS, this works)
     const { error: revealError } = await supabase

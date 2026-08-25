@@ -48,7 +48,7 @@ describe('Authentication Flow', () => {
     const testEmail = generateTestEmail();
     const displayName = testEmail.split('@')[0];
 
-    const { data: profile, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
       .insert({
         user_id: testUserId, // Doesn't exist in auth.users

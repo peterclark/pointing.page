@@ -5,6 +5,15 @@ import type { Tables } from "@/lib/supabase/client";
 interface ParticipantStatusProps {
   participants: Tables<"participants">[];
   votes: Tables<"votes">[];
+  /**
+   * Ids of participants who have voted.
+   *
+   * Cannot be derived from `votes`: RLS withholds another participant's
+   * unrevealed vote row entirely, so `votes` only ever contains your own until
+   * the leader reveals. Sourced from `vote_receipts`, which carries the fact
+   * without the estimate.
+   */
+  votedParticipantIds: Set<string>;
   isRevealed: boolean;
 }
 
@@ -13,7 +22,7 @@ interface ParticipantStatusProps {
  *
  * Shows all active participants with their voting status.
  * Features:
- * - Real-time display of who has voted
+ * - Real-time display of who has voted, without revealing what
  * - Leader indicator with crown emoji
  * - Shows point values after reveal
  * - Responsive layout (wraps on mobile)
@@ -22,16 +31,17 @@ interface ParticipantStatusProps {
 export function ParticipantStatus({
   participants,
   votes,
+  votedParticipantIds,
   isRevealed,
 }: ParticipantStatusProps) {
-  // Create a map of participant_id to vote for quick lookup
+  // Values, for display after the reveal. Before it, this holds only your own.
   const voteMap = new Map(votes.map((vote) => [vote.participant_id, vote]));
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
       {participants.map((participant) => {
         const vote = voteMap.get(participant.id);
-        const hasVoted = !!vote;
+        const hasVoted = votedParticipantIds.has(participant.id);
 
         return (
           <Badge

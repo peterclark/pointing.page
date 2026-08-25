@@ -99,6 +99,7 @@ export function ActiveRoomPage() {
   const {
     stories,
     votes,
+    votedParticipantIds,
     participants,
     isLoading: isLoadingSubscription,
     error: subscriptionError,
@@ -420,6 +421,7 @@ export function ActiveRoomPage() {
                     <ParticipantStatus
                       participants={participants}
                       votes={votes.filter((v) => v.story_id === activeStory.id)}
+                      votedParticipantIds={votedParticipantIds}
                       isRevealed={isRevealed}
                     />
                   </div>

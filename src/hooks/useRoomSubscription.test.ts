@@ -98,6 +98,8 @@ describe('useRoomSubscription', () => {
       if (table === 'stories') {
         return {
           select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockResolvedValue({
             data: mockStories,
@@ -107,6 +109,8 @@ describe('useRoomSubscription', () => {
       } else if (table === 'participants') {
         return {
           select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockResolvedValue({
             data: mockParticipants,
@@ -116,6 +120,8 @@ describe('useRoomSubscription', () => {
       } else if (table === 'votes') {
         return {
           select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockResolvedValue({
             data: mockVotes,
@@ -126,6 +132,8 @@ describe('useRoomSubscription', () => {
 
       return {
         select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockResolvedValue({ data: [], error: null }),
       };
@@ -159,6 +167,8 @@ describe('useRoomSubscription', () => {
     // Mock initial empty data
     const mockFrom = vi.fn().mockImplementation(() => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
@@ -216,6 +226,8 @@ describe('useRoomSubscription', () => {
     // Mock initial data with one story
     const mockFrom = vi.fn().mockImplementation((table) => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({
@@ -266,6 +278,8 @@ describe('useRoomSubscription', () => {
     // Mock error response
     const mockFrom = vi.fn().mockImplementation(() => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({
@@ -296,6 +310,8 @@ describe('useRoomSubscription', () => {
     // Mock initial empty data
     const mockFrom = vi.fn().mockImplementation(() => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
@@ -323,6 +339,8 @@ describe('useRoomSubscription', () => {
     // Mock initial data
     const mockFrom = vi.fn().mockImplementation(() => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
@@ -365,6 +383,8 @@ describe('useRoomSubscription', () => {
     // Mock initial data with one participant
     const mockFrom = vi.fn().mockImplementation((table) => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({
@@ -430,6 +450,8 @@ describe('useRoomSubscription', () => {
 
     vi.mocked(supabase.from).mockImplementation(((table: string) => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({
         data: table === 'stories' ? stories : [],
@@ -456,6 +478,8 @@ describe('useRoomSubscription', () => {
 
     vi.mocked(supabase.from).mockImplementation((() => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
     })) as never);
@@ -497,6 +521,8 @@ describe('useRoomSubscription', () => {
   async function mountWithActiveStory(votes: Tables<'votes'>[] = []) {
     vi.mocked(supabase.from).mockImplementation(((table: string) => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({
         data: table === 'stories' ? [activeStory] : table === 'votes' ? votes : [],
@@ -655,6 +681,8 @@ describe('useRoomSubscription', () => {
   it('shows reconnecting before giving up on repeated channel errors', async () => {
     vi.mocked(supabase.from).mockImplementation((() => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
     })) as never);
@@ -679,6 +707,8 @@ describe('useRoomSubscription', () => {
   it('surfaces an error after three timeouts', async () => {
     vi.mocked(supabase.from).mockImplementation((() => ({
       select: vi.fn().mockReturnThis(),
+      // vote_receipts terminates at .eq(), so the stub must be awaitable there.
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
     })) as never);
@@ -700,6 +730,99 @@ describe('useRoomSubscription', () => {
 
     await waitFor(() => expect(result.current.error?.message).toMatch(/timed out/i));
     expect(result.current.isReconnecting).toBe(false);
+  });
+
+
+  it('reports who has voted from receipts, not from votes', async () => {
+    // votes_select withholds another participant's unrevealed row, so `votes`
+    // can never answer "who has voted" for anyone but you. vote_receipts can.
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'vote_receipts') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          then: (onOk: (v: unknown) => unknown) =>
+            onOk({ data: [{ participant_id: 'participant-9' }], error: null }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
+        order: vi.fn().mockResolvedValue({
+          data: table === 'stories' ? [activeStory] : [],
+          error: null,
+        }),
+      };
+    }) as never);
+
+    const { result } = renderHook(() => useRoomSubscription('test-room-id'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await waitFor(() =>
+      expect(result.current.votedParticipantIds.has('participant-9')).toBe(true)
+    );
+    // The estimate itself never arrives this way.
+    expect(result.current.votes).toEqual([]);
+  });
+
+  it('scopes the receipts subscription to the active story', async () => {
+    await mountWithActiveStory();
+
+    const receiptSubscription = mockChannel.on.mock.calls.find(
+      ([, config]: [string, { table: string }]) => config.table === 'vote_receipts'
+    );
+
+    expect(receiptSubscription).toBeDefined();
+    expect(receiptSubscription![1].filter).toBe('story_id=eq.story-1');
+  });
+
+  it('lights and clears a pill as receipts arrive and go', async () => {
+    const { result } = await mountWithActiveStory();
+    await waitFor(() =>
+      expect(mockSubscriptionCallbacks['vote_receipts-*']).toBeDefined()
+    );
+
+    mockSubscriptionCallbacks['vote_receipts-*']({
+      eventType: 'INSERT',
+      new: { story_id: 'story-1', participant_id: 'participant-7', voted_at: 'now' },
+      old: {},
+    });
+    await waitFor(() =>
+      expect(result.current.votedParticipantIds.has('participant-7')).toBe(true)
+    );
+
+    mockSubscriptionCallbacks['vote_receipts-*']({
+      eventType: 'DELETE',
+      new: {},
+      old: { story_id: 'story-1', participant_id: 'participant-7', voted_at: 'now' },
+    });
+    await waitFor(() =>
+      expect(result.current.votedParticipantIds.has('participant-7')).toBe(false)
+    );
+  });
+
+  it('forgets who voted when the story changes', async () => {
+    const { result } = await mountWithActiveStory();
+    await waitFor(() =>
+      expect(mockSubscriptionCallbacks['vote_receipts-*']).toBeDefined()
+    );
+
+    mockSubscriptionCallbacks['vote_receipts-*']({
+      eventType: 'INSERT',
+      new: { story_id: 'story-1', participant_id: 'participant-7', voted_at: 'now' },
+      old: {},
+    });
+    await waitFor(() => expect(result.current.votedParticipantIds.size).toBe(1));
+
+    mockSubscriptionCallbacks['stories-*']({
+      eventType: 'UPDATE',
+      new: { ...activeStory, is_active: false },
+      old: activeStory,
+    });
+
+    // Otherwise the next round would open with last round's pills already lit.
+    await waitFor(() => expect(result.current.votedParticipantIds.size).toBe(0));
   });
 
 });

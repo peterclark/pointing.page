@@ -125,6 +125,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [],
         isLoading: true,
         error: null,
@@ -143,6 +144,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: mockError,
@@ -163,6 +165,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockLeader],
         isLoading: false,
         error: null,
@@ -183,6 +186,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,
@@ -208,6 +212,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,
@@ -247,6 +252,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [mockVote1],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant1, mockParticipant2],
         isLoading: false,
         error: null,
@@ -270,6 +276,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockLeader],
         isLoading: false,
         error: null,
@@ -288,6 +295,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,
@@ -318,6 +326,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [mockVote],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,
@@ -344,6 +353,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [mockVote],
+        votedParticipantIds: new Set<string>(),
         participants: [mockLeader],
         isLoading: false,
         error: null,
@@ -368,6 +378,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [mockVote],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,
@@ -416,6 +427,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [mockVote1, mockVote2],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant1, mockParticipant2],
         isLoading: false,
         error: null,
@@ -466,6 +478,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [mockVote1, mockVote2],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant1, mockParticipant2],
         isLoading: false,
         error: null,
@@ -505,6 +518,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [ownVote, leakedVote], // Leaked data included
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,
@@ -533,6 +547,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant1],
         isLoading: false,
         error: null,
@@ -553,6 +568,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant1, mockParticipant2],
         isLoading: false,
         error: null,
@@ -581,6 +597,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
         votes: [mockVote],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,
@@ -599,6 +616,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [revealedStory],
         votes: [revealedVote],
+        votedParticipantIds: new Set<string>(),
         participants: [mockParticipant],
         isLoading: false,
         error: null,

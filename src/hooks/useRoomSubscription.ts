@@ -47,6 +47,14 @@ export type VoteWithParticipant = Tables<"votes"> & {
 export interface RoomSubscriptionData {
   stories: Tables<"stories">[];
   votes: Tables<"votes">[];
+  /**
+   * Ids of participants who have voted on the active story.
+   *
+   * Separate from `votes` because RLS withholds another participant's
+   * unrevealed vote row entirely, so `votes` cannot answer "who has voted"
+   * for anyone but you. `vote_receipts` carries the fact without the estimate.
+   */
+  votedParticipantIds: Set<string>;
   participants: Tables<"participants">[];
   isLoading: boolean;
   error: Error | null;
@@ -62,6 +70,9 @@ export interface RoomSubscriptionData {
 export function useRoomSubscription(roomId: string): RoomSubscriptionData {
   const [stories, setStories] = useState<Tables<"stories">[]>([]);
   const [votes, setVotes] = useState<Tables<"votes">[]>([]);
+  const [votedParticipantIds, setVotedParticipantIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [participants, setParticipants] = useState<Tables<"participants">[]>(
     []
   );
@@ -352,9 +363,67 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     };
   }, [activeStoryId]);
 
+  // Who has voted, as distinct from what they voted. RLS hides another
+  // participant's unrevealed vote row outright, so this is the only signal the
+  // board has while a round is still open.
+  useEffect(() => {
+    if (!activeStoryId) {
+      setVotedParticipantIds(new Set());
+      return;
+    }
+
+    let isMounted = true;
+
+    supabase
+      .from("vote_receipts")
+      .select("participant_id")
+      .eq("story_id", activeStoryId)
+      .then(({ data, error: fetchError }) => {
+        if (!isMounted) return;
+        if (fetchError) {
+          console.error(
+            "[useRoomSubscription] Failed to fetch vote receipts:",
+            fetchError
+          );
+          return;
+        }
+        setVotedParticipantIds(new Set((data ?? []).map((r) => r.participant_id)));
+      });
+
+    const channel: RealtimeChannel = supabase
+      .channel(`story:${activeStoryId}:receipts`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "vote_receipts",
+          filter: `story_id=eq.${activeStoryId}`,
+        },
+        (payload: RealtimePostgresChangesPayload<Tables<"vote_receipts">>) => {
+          setVotedParticipantIds((prev) => {
+            const next = new Set(prev);
+            if (payload.eventType === "DELETE") {
+              next.delete((payload.old as Tables<"vote_receipts">).participant_id);
+            } else {
+              next.add((payload.new as Tables<"vote_receipts">).participant_id);
+            }
+            return next;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [activeStoryId]);
+
   return {
     stories,
     votes,
+    votedParticipantIds,
     participants,
     isLoading,
     error,
