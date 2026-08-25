@@ -21,6 +21,25 @@ every room they joined as a guest — survives the upgrade. Without this setting
 `linkIdentity()` fails and the sign-in surfaces an error rather than silently
 stranding their rooms.
 
+### Local development
+
+A local stack reads these from `supabase/config.toml`, not the dashboard. Both
+are already set in this repository:
+
+```toml
+[auth]
+enable_anonymous_sign_ins = true
+enable_manual_linking = true
+```
+
+Run `npm run supabase:start` after changing them — the settings are applied when
+the containers boot, so an already-running stack keeps the old values.
+
+Note the local rate limit under `[auth.rate_limit]`: `anonymous_users = 30` per
+hour per IP, matching the hosted default. Each browser profile with cleared
+storage mints a new anonymous user, so heavy multi-participant testing can reach
+it.
+
 
 ## Prerequisites
 
