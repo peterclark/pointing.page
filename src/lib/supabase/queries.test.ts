@@ -499,3 +499,167 @@ describe("updateStoryAverage", () => {
     );
   });
 });
+
+describe("unexpected failures", () => {
+  // Every query function wraps its body in a try/catch that re-throws a
+  // DatabaseError untouched and wraps anything else. The second branch only
+  // runs when the client itself throws — a transport failure rather than a
+  // PostgREST error response — which is exactly the case a caller is least
+  // likely to have handled, so it is worth pinning that it still arrives as a
+  // DatabaseError rather than a raw TypeError.
+  const boom = () => {
+    throw new TypeError("Failed to fetch");
+  };
+
+  beforeEach(() => {
+    vi.mocked(supabase.from).mockImplementation(boom as never);
+    vi.mocked(supabase.rpc).mockImplementation(boom as never);
+  });
+
+  const cases: Array<[string, () => Promise<unknown>, RegExp]> = [
+    ["getRoomByCode", () => getRoomByCode("ABC12345"), /Unexpected error while getting room by code/],
+    ["createRoom", () => createRoom("Sprint"), /Unexpected error while creating room/],
+    ["updateRoom", () => updateRoom("room-1", { name: "x" }), /Unexpected error while updating room/],
+    ["joinRoom", () => joinRoom("room-1", "user-1", "Ada"), /Unexpected error while joining room/],
+    ["getActiveParticipants", () => getActiveParticipants("room-1"), /Unexpected error while getting active participants/],
+    ["leaveRoom", () => leaveRoom("participant-1"), /Unexpected error while leaving room/],
+    ["createStory", () => createStory("room-1", "Title"), /Unexpected error while creating story/],
+    ["setActiveStory", () => setActiveStory("story-1"), /Unexpected error while activating story/],
+    ["clearActiveStory", () => clearActiveStory("room-1"), /Unexpected error while clearing active story/],
+    ["getActiveStory", () => getActiveStory("room-1"), /Unexpected error while getting active story/],
+    ["submitVote", () => submitVote("story-1", "participant-1", "5"), /Unexpected error while submitting vote/],
+    ["revealVotes", () => revealVotes("story-1"), /Unexpected error while revealing votes/],
+    ["getStoryVotes", () => getStoryVotes("story-1"), /Unexpected error while getting story votes/],
+    ["updateStoryAverage", () => updateStoryAverage("story-1", 5), /Unexpected error while updating story average/],
+  ];
+
+  it.each(cases)("%s wraps a transport failure in a DatabaseError", async (_name, call, message) => {
+    const error = await call().catch((e) => e);
+
+    expect(error).toBeInstanceOf(DatabaseError);
+    expect(error.message).toMatch(message);
+    // The original is preserved for debugging rather than discarded.
+    expect(error.details).toBeInstanceOf(TypeError);
+  });
+});
+
+describe("missing-row guards", () => {
+  it("updateRoom throws when the update returns no row", async () => {
+    queueFrom(mockQuery({ data: null }));
+
+    await expect(updateRoom("room-1", { name: "x" })).rejects.toThrow(
+      /Room updated but no data returned/
+    );
+  });
+
+  it("joinRoom throws when the insert returns no row", async () => {
+    queueFrom(mockQuery({ data: null }), mockQuery({ count: 0 }), mockQuery({ data: null }));
+
+    await expect(joinRoom("room-1", "user-1", "Ada")).rejects.toThrow(
+      /Participant created but no data returned/
+    );
+  });
+
+  it("createStory throws when the insert returns no row", async () => {
+    queueFrom(mockQuery({ data: null }));
+
+    await expect(createStory("room-1", "Title")).rejects.toThrow(
+      /Story created but no data returned/
+    );
+  });
+
+  it("submitVote throws when the upsert returns no row", async () => {
+    queueFrom(mockQuery({ data: null }));
+
+    await expect(submitVote("story-1", "participant-1", "5")).rejects.toThrow(
+      /Vote submitted but no data returned/
+    );
+  });
+
+  it("setActiveStory throws when the activation returns no row", async () => {
+    queueFrom(
+      mockQuery({ data: { room_id: "room-1" } }),
+      mockQuery(),
+      mockQuery({ data: null })
+    );
+
+    await expect(setActiveStory("story-1")).rejects.toThrow(
+      /Story activated but no data returned/
+    );
+  });
+
+  it("setActiveStory reports a leader-only violation on activation", async () => {
+    queueFrom(
+      mockQuery({ data: { room_id: "room-1" } }),
+      mockQuery(),
+      mockQueryError("no rows", "PGRST116")
+    );
+
+    await expect(setActiveStory("story-1")).rejects.toThrow(
+      /Only the room leader can activate stories/
+    );
+  });
+
+  it("createRoom surfaces a plain failure from the code RPC", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: null }) as never);
+
+    await expect(createRoom("Sprint")).rejects.toThrow(/Failed to generate room code/);
+  });
+
+  it("joinRoom wraps a reactivation failure", async () => {
+    queueFrom(
+      mockQuery({ data: { ...participant, user_id: "user-1" } }),
+      mockQueryError("update denied")
+    );
+
+    await expect(joinRoom("room-1", "user-1", "Ada")).rejects.toThrow(
+      /Failed to reactivate participant/
+    );
+  });
+
+  it("getActiveStory wraps a query failure", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(getActiveStory("room-1")).rejects.toThrow(/Failed to get active story/);
+  });
+
+  it("getActiveParticipants wraps a query failure", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(getActiveParticipants("room-1")).rejects.toThrow(
+      /Failed to get active participants/
+    );
+  });
+
+  it("getStoryVotes wraps a query failure", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(getStoryVotes("story-1")).rejects.toThrow(/Failed to get story votes/);
+  });
+
+  it("clearActiveStory wraps a non-RLS failure", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(clearActiveStory("room-1")).rejects.toThrow(/Failed to clear active story/);
+  });
+
+  it("updateStoryAverage wraps a non-RLS failure", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(updateStoryAverage("story-1", 5)).rejects.toThrow(
+      /Failed to update story average/
+    );
+  });
+
+  it("createStory wraps a non-RLS failure", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(createStory("room-1", "Title")).rejects.toThrow(/Failed to create story/);
+  });
+
+  it("setActiveStory wraps a lookup failure", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(setActiveStory("story-1")).rejects.toThrow(/Failed to get story/);
+  });
+});

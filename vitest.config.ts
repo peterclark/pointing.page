@@ -36,10 +36,10 @@ export default defineConfig({
       ],
       // Ratchet these upward as suites land; they are a floor, not a target.
       thresholds: {
-        statements: 70,
-        branches: 63,
-        functions: 63,
-        lines: 70,
+        statements: 88,
+        branches: 80,
+        functions: 90,
+        lines: 88,
       },
     },
   },

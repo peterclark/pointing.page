@@ -471,4 +471,235 @@ describe('useRoomSubscription', () => {
     expect(result.current.votes).toEqual([]);
   });
 
+
+  /** Room with one active story, so the votes channel is live. */
+  const activeStory: Tables<'stories'> = {
+    id: 'story-1',
+    room_id: 'test-room-id',
+    title: 'Active',
+    description: null,
+    is_active: true,
+    final_average: null,
+    created_at: '2025-01-01T00:00:00Z',
+  };
+
+  const seedVote: Tables<'votes'> = {
+    id: 'vote-1',
+    story_id: 'story-1',
+    participant_id: 'participant-1',
+    point_value: '5',
+    sentiment: null,
+    is_revealed: false,
+    created_at: '2025-01-01T00:00:00Z',
+  };
+
+  /** Mount with an active story and the given starting votes. */
+  async function mountWithActiveStory(votes: Tables<'votes'>[] = []) {
+    vi.mocked(supabase.from).mockImplementation(((table: string) => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: table === 'stories' ? [activeStory] : table === 'votes' ? votes : [],
+        error: null,
+      }),
+    })) as never);
+
+    const hook = renderHook(() => useRoomSubscription('test-room-id'));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+    await waitFor(() => expect(mockSubscriptionCallbacks['votes-*']).toBeDefined());
+    return hook;
+  }
+
+  it('adds an incoming vote for the active story', async () => {
+    const { result } = await mountWithActiveStory();
+
+    mockSubscriptionCallbacks['votes-*']({
+      eventType: 'INSERT',
+      new: seedVote,
+      old: {},
+    });
+
+    await waitFor(() => expect(result.current.votes).toHaveLength(1));
+    expect(result.current.votes[0]).toEqual(seedVote);
+  });
+
+  it('ignores a duplicate INSERT for a vote it already holds', async () => {
+    const { result } = await mountWithActiveStory([seedVote]);
+
+    mockSubscriptionCallbacks['votes-*']({
+      eventType: 'INSERT',
+      new: seedVote,
+      old: {},
+    });
+
+    await waitFor(() => expect(result.current.votes).toHaveLength(1));
+  });
+
+  it('applies an UPDATE to a vote it already holds', async () => {
+    const { result } = await mountWithActiveStory([seedVote]);
+
+    mockSubscriptionCallbacks['votes-*']({
+      eventType: 'UPDATE',
+      new: { ...seedVote, point_value: '8' },
+      old: seedVote,
+    });
+
+    await waitFor(() => expect(result.current.votes[0].point_value).toBe('8'));
+    expect(result.current.votes).toHaveLength(1);
+  });
+
+  it('adopts a vote that becomes visible only on reveal', async () => {
+    // RLS withholds another participant's unrevealed vote entirely, so the
+    // reveal arrives as an UPDATE for a row this client has never seen.
+    const { result } = await mountWithActiveStory([]);
+
+    mockSubscriptionCallbacks['votes-*']({
+      eventType: 'UPDATE',
+      new: { ...seedVote, id: 'vote-2', is_revealed: true },
+      old: {},
+    });
+
+    await waitFor(() => expect(result.current.votes).toHaveLength(1));
+    expect(result.current.votes[0].is_revealed).toBe(true);
+  });
+
+  it('removes a deleted vote', async () => {
+    const { result } = await mountWithActiveStory([seedVote]);
+
+    mockSubscriptionCallbacks['votes-*']({
+      eventType: 'DELETE',
+      new: {},
+      old: seedVote,
+    });
+
+    await waitFor(() => expect(result.current.votes).toHaveLength(0));
+  });
+
+  it('drops the votes when the active story is cleared', async () => {
+    const { result } = await mountWithActiveStory([seedVote]);
+    await waitFor(() => expect(result.current.votes).toHaveLength(1));
+
+    mockSubscriptionCallbacks['stories-*']({
+      eventType: 'UPDATE',
+      new: { ...activeStory, is_active: false },
+      old: activeStory,
+    });
+
+    await waitFor(() => expect(result.current.votes).toEqual([]));
+  });
+
+  it('adds a newly created story', async () => {
+    const { result } = await mountWithActiveStory();
+
+    const second: Tables<'stories'> = {
+      ...activeStory,
+      id: 'story-2',
+      title: 'Second',
+      is_active: false,
+      created_at: '2025-01-02T00:00:00Z',
+    };
+
+    mockSubscriptionCallbacks['stories-*']({
+      eventType: 'INSERT',
+      new: second,
+      old: {},
+    });
+
+    await waitFor(() => expect(result.current.stories).toHaveLength(2));
+    // Kept in creation order, so the board does not reshuffle on each event.
+    expect(result.current.stories.map((s) => s.id)).toEqual(['story-1', 'story-2']);
+  });
+
+  it('applies a participant rename', async () => {
+    const { result } = await mountWithActiveStory();
+
+    const participant: Tables<'participants'> = {
+      id: 'participant-1',
+      room_id: 'test-room-id',
+      name: 'Ada',
+      is_leader: false,
+      is_active: true,
+      joined_at: '2025-01-01T00:00:00Z',
+      user_id: 'user-1',
+    };
+
+    mockSubscriptionCallbacks['participants-*']({
+      eventType: 'INSERT',
+      new: participant,
+      old: {},
+    });
+    await waitFor(() => expect(result.current.participants).toHaveLength(1));
+
+    mockSubscriptionCallbacks['participants-*']({
+      eventType: 'UPDATE',
+      new: { ...participant, name: 'Ada L.', is_leader: true },
+      old: participant,
+    });
+
+    await waitFor(() => expect(result.current.participants[0].name).toBe('Ada L.'));
+    expect(result.current.participants[0].is_leader).toBe(true);
+  });
+
+  it('reports a lost network connection, and clears it on recovery', async () => {
+    const { result } = await mountWithActiveStory();
+
+    window.dispatchEvent(new Event('offline'));
+    await waitFor(() => expect(result.current.error?.message).toMatch(/connection lost/i));
+
+    window.dispatchEvent(new Event('online'));
+
+    // The banner used to outlive the outage: handleOnline was an empty function.
+    await waitFor(() => expect(result.current.error).toBeNull());
+  });
+
+  it('shows reconnecting before giving up on repeated channel errors', async () => {
+    vi.mocked(supabase.from).mockImplementation((() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    })) as never);
+
+    let emit: (status: string, err?: unknown) => void = () => {};
+    mockChannel.subscribe = vi.fn().mockImplementation((callback) => {
+      if (callback) emit = callback;
+      return mockChannel;
+    });
+
+    const { result } = renderHook(() => useRoomSubscription('test-room-id'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    emit('CHANNEL_ERROR', { message: 'blip' });
+    await waitFor(() => expect(result.current.isReconnecting).toBe(true));
+    expect(result.current.error).toBeNull();
+
+    emit('SUBSCRIBED');
+    await waitFor(() => expect(result.current.isReconnecting).toBe(false));
+  });
+
+  it('surfaces an error after three timeouts', async () => {
+    vi.mocked(supabase.from).mockImplementation((() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    })) as never);
+
+    let emit: (status: string, err?: unknown) => void = () => {};
+    mockChannel.subscribe = vi.fn().mockImplementation((callback) => {
+      if (callback) emit = callback;
+      return mockChannel;
+    });
+
+    const { result } = renderHook(() => useRoomSubscription('test-room-id'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    emit('TIMED_OUT');
+    await waitFor(() => expect(result.current.isReconnecting).toBe(true));
+
+    emit('TIMED_OUT');
+    emit('TIMED_OUT');
+
+    await waitFor(() => expect(result.current.error?.message).toMatch(/timed out/i));
+    expect(result.current.isReconnecting).toBe(false);
+  });
+
 });
