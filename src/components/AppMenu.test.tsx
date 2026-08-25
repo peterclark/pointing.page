@@ -53,7 +53,11 @@ vi.mock("@/components/current-user-avatar", () => ({
 
 describe("AppMenu", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // resetAllMocks, not clearAllMocks: the latter keeps queued
+    // implementations, so the rejecting signOut below would leak into every
+    // later test in this file and surface as an unhandled rejection.
+    vi.resetAllMocks();
+    mocks.registerCommand.mockReturnValue(vi.fn());
   });
 
   describe("Unauthenticated State", () => {
