@@ -135,9 +135,15 @@ refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
 enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
-enable_anonymous_sign_ins = false
-# Allow/disallow testing manual linking of accounts
-enable_manual_linking = false
+# Required: SessionGate signs every visitor in anonymously before the first
+# query, which is what gives RLS an auth.uid() to key vote privacy on. With this
+# off, local dev degrades to read-only — policies fail closed.
+enable_anonymous_sign_ins = true
+# Allow/disallow testing manual linking of accounts.
+# Required: signing in with a provider calls linkIdentity(), which upgrades the
+# anonymous identity in place so auth.uid() — and every room joined as a guest —
+# survives. Without this, linkIdentity() fails.
+enable_manual_linking = true
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
 minimum_password_length = 6
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
