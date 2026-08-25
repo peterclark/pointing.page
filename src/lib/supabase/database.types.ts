@@ -141,6 +141,39 @@ export type Database = {
           },
         ]
       }
+      vote_receipts: {
+        Row: {
+          story_id: string
+          participant_id: string
+          voted_at: string
+        }
+        Insert: {
+          story_id: string
+          participant_id: string
+          voted_at?: string
+        }
+        Update: {
+          story_id?: string
+          participant_id?: string
+          voted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vote_receipts_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vote_receipts_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       votes: {
         Row: {
           created_at: string

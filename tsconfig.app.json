@@ -30,10 +30,11 @@
     }
   },
   "include": ["src"],
-  "exclude": [
-    "src/lib/supabase/subscriptions.example.ts",
-    "src/lib/supabase/test-types.ts",
-    "**/*.test.ts",
-    "**/*.test.tsx"
-  ]
+  /* Test files are excluded from the type check. That is a real gap — a
+     required prop can be added to a component and every test constructing it
+     without the prop still passes `npm run typecheck`, failing only at runtime,
+     which is exactly how the vote_receipts prop slipped through. Including them
+     currently surfaces 83 errors, almost all partial-mock argument mismatches,
+     so fixing it is its own piece of work rather than a rider on a bug fix. */
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

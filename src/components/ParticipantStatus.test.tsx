@@ -60,6 +60,7 @@ describe("ParticipantStatus", () => {
       <ParticipantStatus
         participants={mockParticipants}
         votes={[]}
+        votedParticipantIds={new Set<string>()}
         isRevealed={false}
       />
     );
@@ -74,6 +75,7 @@ describe("ParticipantStatus", () => {
       <ParticipantStatus
         participants={mockParticipants}
         votes={[]}
+        votedParticipantIds={new Set<string>()}
         isRevealed={false}
       />
     );
@@ -92,6 +94,7 @@ describe("ParticipantStatus", () => {
       <ParticipantStatus
         participants={mockParticipants}
         votes={mockVotes}
+        votedParticipantIds={new Set(mockVotes.map((v) => v.participant_id))}
         isRevealed={false}
       />
     );
@@ -107,6 +110,7 @@ describe("ParticipantStatus", () => {
       <ParticipantStatus
         participants={mockParticipants}
         votes={mockVotes}
+        votedParticipantIds={new Set(mockVotes.map((v) => v.participant_id))}
         isRevealed={false}
       />
     );
@@ -121,6 +125,7 @@ describe("ParticipantStatus", () => {
       <ParticipantStatus
         participants={mockParticipants}
         votes={mockVotes}
+        votedParticipantIds={new Set(mockVotes.map((v) => v.participant_id))}
         isRevealed={true}
       />
     );
@@ -135,6 +140,7 @@ describe("ParticipantStatus", () => {
       <ParticipantStatus
         participants={mockParticipants}
         votes={[mockVotes[0]]}
+        votedParticipantIds={new Set([mockVotes[0].participant_id])}
         isRevealed={false}
       />
     );
@@ -148,7 +154,12 @@ describe("ParticipantStatus", () => {
 
   it("handles empty participant list", () => {
     const { container } = render(
-      <ParticipantStatus participants={[]} votes={[]} isRevealed={false} />
+      <ParticipantStatus
+        participants={[]}
+        votes={[]}
+        votedParticipantIds={new Set<string>()}
+        isRevealed={false}
+      />
     );
 
     const badges = container.querySelectorAll('[class*="gap-1.5"]');
@@ -173,6 +184,7 @@ describe("ParticipantStatus", () => {
       <ParticipantStatus
         participants={mockParticipants}
         votes={allVotes}
+        votedParticipantIds={new Set(allVotes.map((v) => v.participant_id))}
         isRevealed={false}
       />
     );
@@ -182,4 +194,91 @@ describe("ParticipantStatus", () => {
     expect(screen.getByText(/bob/i)).toBeInTheDocument();
     expect(screen.getByText(/carol/i)).toBeInTheDocument();
   });
+
+  it("marks a participant as voted with no vote row present", () => {
+    // The regression this guards: RLS withholds another participant's
+    // unrevealed vote entirely, so `votes` holds only your own until the
+    // reveal. Deriving hasVoted from `votes` left every other pill unlit while
+    // the room was actually voting.
+    render(
+      <ParticipantStatus
+        participants={mockParticipants}
+        votes={[]}
+        votedParticipantIds={new Set(["p1", "p3"])}
+        isRevealed={false}
+      />
+    );
+
+    const badge = (name: RegExp) =>
+      screen.getByText(name).closest("[class*='gap-1.5']");
+
+    expect(badge(/alice/i)?.querySelector(".lucide-circle-check")).toBeTruthy();
+    expect(badge(/carol/i)?.querySelector(".lucide-circle-check")).toBeTruthy();
+    // Bob gets the hollow circle, not the tick.
+    expect(badge(/bob/i)?.querySelector(".lucide-circle-check")).toBeFalsy();
+    expect(badge(/bob/i)?.querySelector(".lucide-circle")).toBeTruthy();
+  });
+
+  it("does not leak an estimate just because someone has voted", () => {
+    render(
+      <ParticipantStatus
+        participants={mockParticipants}
+        votes={[]}
+        votedParticipantIds={new Set(["p1", "p2", "p3"])}
+        isRevealed={false}
+      />
+    );
+
+    expect(screen.queryByText("5")).not.toBeInTheDocument();
+    expect(screen.queryByText("8")).not.toBeInTheDocument();
+  });
+
+  it("shows your own value only after the reveal, even though you voted", () => {
+    const { rerender } = render(
+      <ParticipantStatus
+        participants={mockParticipants}
+        votes={[mockVotes[0]]}
+        votedParticipantIds={new Set(["p1", "p3"])}
+        isRevealed={false}
+      />
+    );
+    expect(screen.queryByText("5")).not.toBeInTheDocument();
+
+    rerender(
+      <ParticipantStatus
+        participants={mockParticipants}
+        votes={mockVotes}
+        votedParticipantIds={new Set(["p1", "p3"])}
+        isRevealed={true}
+      />
+    );
+
+    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
+  });
+
+
+  it("falls back to visible votes when receipts are unavailable", () => {
+    // A deploy preview runs new client code against the production database,
+    // where the vote_receipts migration has not been applied. Without a floor
+    // the board shows nobody as having voted, including yourself.
+    render(
+      <ParticipantStatus
+        participants={mockParticipants}
+        votes={[mockVotes[0]]}
+        votedParticipantIds={new Set<string>()}
+        isRevealed={false}
+      />
+    );
+
+    const badge = (name: RegExp) =>
+      screen.getByText(name).closest("[class*='gap-1.5']");
+
+    expect(badge(/alice/i)?.querySelector(".lucide-circle-check")).toBeTruthy();
+    // Bob and Carol are still unknown, which is the honest answer.
+    expect(badge(/bob/i)?.querySelector(".lucide-circle-check")).toBeFalsy();
+    // And the fallback still leaks no estimate.
+    expect(screen.queryByText("5")).not.toBeInTheDocument();
+  });
+
 });
