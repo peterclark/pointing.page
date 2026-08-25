@@ -362,7 +362,10 @@ All components install to `src/components/ui/` per components.json:17.
 
 ### Vote Privacy (CRITICAL)
 Vote privacy is enforced at multiple layers:
-1. **Database RLS**: Policies filter unrevealed votes server-side
+1. **Database RLS**: NOT enforced today. `votes_select` is `USING (true)`, so an
+   unrevealed `point_value` is readable straight from the REST API by anyone with
+   the anon key (which ships in the client bundle). Server-side privacy requires
+   every visitor to be signed in — see `docs/vote-privacy-limitation.md`.
 2. **Client Filtering**: `filterVisibleVotes()` ensures only visible votes rendered
 3. **UI Logic**: ParticipantStatus and VoteResults only show revealed data
 

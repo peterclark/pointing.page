@@ -13,7 +13,13 @@ All Row Level Security policies have been successfully implemented and tested.
 ## Final Security Model
 
 ### Database Layer (RLS)
-- **Permissive policies** - All tables allow SELECT/INSERT/UPDATE/DELETE with `USING (true)`
+- **Permissive policies** - `stories` and `votes` allow SELECT/INSERT/UPDATE with
+  `USING (true)`; `rooms` and `participants` allow SELECT/INSERT the same way.
+  This is NOT true of every verb on every table: `rooms`, `stories` and
+  `participants` have no DELETE policy, and `rooms.UPDATE` /
+  `participants.UPDATE` / `participants.DELETE` are keyed on `auth.uid()`, so
+  all of those are denied for anonymous callers. Read `pg_policies` rather than
+  this file — it has been wrong before.
 - **Why permissive?** - Anonymous users can't be identified via auth.uid() (it's NULL)
 - **Room codes as security** - 8-character alphanumeric codes (62^8 = ~218 trillion combinations)
 - **Can't enumerate rooms** - Need the secret code to discover a room_id

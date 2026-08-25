@@ -29,8 +29,50 @@ Vote privacy is currently enforced through client-side filtering:
 We attempted to implement Supabase Row Level Security (RLS) policies with Anonymous Auth but encountered:
 
 1. **Database Error**: "500: Database error saving new user" when creating anonymous users
-2. **Root Cause**: Unknown database constraint or configuration issue preventing anonymous user creation
+2. **Root Cause**: ~~Unknown database constraint or configuration issue~~ **Identified and fixed**
+   in migration `20260825140000_tighten_rls_and_unblock_anonymous_auth.sql`.
 3. **Decision**: Reverted to localStorage-based approach for MVP stability
+
+### The 500, explained
+
+`handle_new_user()` fires on every `auth.users` INSERT and derived the display name as:
+
+```sql
+COALESCE(raw_user_meta_data->>'display_name', SPLIT_PART(NEW.email, '@', 1))
+```
+
+An anonymous sign-in supplies no email and no metadata, so both branches evaluate
+to NULL. The INSERT then violates `profiles.display_name NOT NULL`, the trigger
+aborts, and the enclosing INSERT into `auth.users` rolls back — which GoTrue
+reports as "500: Database error saving new user".
+
+Reproduced against a local Postgres with the project's migrations applied:
+
+```
+INSERT INTO auth.users (email, raw_user_meta_data, is_anonymous)
+  VALUES (NULL, '{}'::jsonb, true);
+ERROR:  null value in column "display_name" of relation "profiles"
+        violates not-null constraint
+CONTEXT: SQL statement "INSERT INTO public.profiles (user_id, display_name)
+```
+
+The trigger now falls back to `Guest <first 8 chars of uuid>`, so anonymous
+sign-in succeeds. **This unblocks the real fix**: once every visitor holds a JWT,
+`auth.uid()` is non-null and ownership predicates work, so vote privacy and
+leader-only operations can move into the database.
+
+### What still needs doing
+
+The tight policies are deliberately NOT in that migration. Migrations deploy to
+production automatically on merge, and applying ownership predicates before the
+client calls `supabase.auth.signInAnonymously()` would lock out every anonymous
+user mid-session. The two ship together:
+
+1. Client: sign in anonymously on boot; store the resulting user id on the
+   participant row; pass it into `joinRoom()`.
+2. Migration: replace `votes_select USING (true)` with
+   `is_revealed OR participant is mine`, and gate `stories` INSERT/UPDATE plus
+   `votes.is_revealed` on room leadership.
 
 ## Attempted Implementation
 
