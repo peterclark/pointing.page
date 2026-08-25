@@ -16,12 +16,15 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ActiveRoomPage } from "./ActiveRoomPage";
 import * as queries from "@/lib/supabase/queries";
 import * as useRoomSubscriptionModule from "@/hooks/useRoomSubscription";
+import { useAuth } from "@/hooks/useAuth";
+import { mockAuthState } from "@/tests/mock-auth";
 import * as utils from "@/lib/utils";
 import type { Tables } from "@/lib/supabase/client";
 
 // Mock modules
 vi.mock("@/lib/supabase/queries");
 vi.mock("@/hooks/useRoomSubscription");
+vi.mock("@/hooks/useAuth");
 vi.mock("@/lib/utils", async () => {
   const actual = await vi.importActual("@/lib/utils");
   return {
@@ -103,9 +106,9 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
     vi.clearAllMocks();
     // Default mock implementations
     vi.mocked(queries.getRoomByCode).mockResolvedValue(createMockRoom());
-    vi.mocked(utils.getParticipantId).mockReturnValue("participant-123");
-    // Set up localStorage with participant ID
-    localStorage.setItem('participant_id', 'participant-123');
+    // Identity comes from the session now. This id matches the user_id on
+    // createMockParticipant, so the page resolves it to "participant-123".
+    vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
   });
 
   afterEach(() => {

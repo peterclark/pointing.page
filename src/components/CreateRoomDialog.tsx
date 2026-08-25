@@ -18,6 +18,7 @@ import {
   saveParticipantName,
 } from "@/lib/utils";
 import { createRoom, joinRoom } from "@/lib/supabase/queries";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CreateRoomDialogProps {
   open: boolean;
@@ -50,6 +51,7 @@ export function CreateRoomDialog({
   preservedRoomName,
 }: CreateRoomDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const {
     register,
@@ -83,6 +85,11 @@ export function CreateRoomDialog({
   }, [open, reset, preservedRoomName]);
 
   const onSubmit = async (data: CreateRoomFormData) => {
+    if (!user) {
+      onRoomCreationError("Still starting your session. Please try again.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Notify parent that room creation has started
@@ -95,12 +102,9 @@ export function CreateRoomDialog({
       // Save participant name to localStorage
       saveParticipantName(data.participantName);
 
-      // Join the room as the first participant (becomes leader)
-      // Pass null for userId since we're using localStorage-based identification
-      const participant = await joinRoom(room.id, null, data.participantName);
-
-      // Save the participant's database ID to localStorage for future room access
-      localStorage.setItem("participant_id", participant.id);
+      // Join the room as the first participant (becomes leader). The room is
+      // keyed to the session identity, so no participant id is cached locally.
+      await joinRoom(room.id, user.id, data.participantName);
 
       // Notify parent of success with room code
       onRoomCreationSuccess(room.room_code);

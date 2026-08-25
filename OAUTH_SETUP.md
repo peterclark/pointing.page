@@ -2,6 +2,26 @@
 
 This guide provides step-by-step instructions for configuring Google and Github OAuth authentication providers in Supabase.
 
+
+## Required: Anonymous sign-ins and Manual Linking
+
+Two settings under **Authentication → Sign In / Providers** need to be on.
+
+**Allow anonymous sign-ins.** Every visitor is signed in anonymously before the
+app makes its first query. This is what gives Row Level Security an `auth.uid()`
+to key on, and therefore what makes vote privacy enforceable in the database
+rather than only in the browser. With it off, `SessionGate` logs a failure and
+the app degrades to read-only: policies fail closed, so a visitor sees revealed
+votes and cannot vote.
+
+**Manual Linking.** When a guest signs in with Google or GitHub, the app calls
+`linkIdentity()` rather than `signInWithOAuth()`. That attaches the provider to
+the anonymous identity the visitor already holds, so their `auth.uid()` — and
+every room they joined as a guest — survives the upgrade. Without this setting
+`linkIdentity()` fails and the sign-in surfaces an error rather than silently
+stranding their rooms.
+
+
 ## Prerequisites
 
 - A Supabase project (create one at [supabase.com](https://supabase.com))

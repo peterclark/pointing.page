@@ -3,8 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateRoomDialog } from "./CreateRoomDialog";
 import * as queries from "@/lib/supabase/queries";
+import { useAuth } from "@/hooks/useAuth";
+import { mockAuthState } from "@/tests/mock-auth";
 
 // Mock the Supabase queries
+vi.mock("@/hooks/useAuth");
 vi.mock("@/lib/supabase/queries", () => ({
   createRoom: vi.fn(),
   joinRoom: vi.fn(),
@@ -37,6 +40,7 @@ describe("CreateRoomDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.clear();
+    vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
   });
 
   it("calls onRoomCreationStart and closes dialog when form submits", async () => {

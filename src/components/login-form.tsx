@@ -16,18 +16,25 @@ export function LoginForm({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        },
-      });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const options = { redirectTo: `${window.location.origin}/` };
+
+      // Every visitor arrives holding an anonymous session, and their rooms are
+      // keyed to that `auth.uid()`. Signing in with OAuth would mint a *new*
+      // user and strand them. linkIdentity attaches the provider to the
+      // identity they already have, so the uid — and every room they joined —
+      // survives. Requires Manual Linking enabled in the Supabase dashboard;
+      // see OAUTH_SETUP.md.
+      const { error } = user?.is_anonymous
+        ? await supabase.auth.linkIdentity({ provider, options })
+        : await supabase.auth.signInWithOAuth({ provider, options });
 
       if (error) throw error;
 
-      // OAuth redirect will happen automatically, no need to manually redirect
-      // Note: Display name will come from OAuth provider's metadata (user.user_metadata.full_name)
-      // and account linking in ProfilePage will handle fallback to localStorage if needed
+      // The OAuth redirect happens on its own from here.
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";

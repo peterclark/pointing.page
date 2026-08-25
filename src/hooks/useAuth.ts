@@ -36,7 +36,16 @@ import { supabase } from "@/lib/supabase/client";
 export interface AuthState {
   user: User | null;
   session: Session | null;
+  /**
+   * True only for a user who signed in with a provider.
+   *
+   * Every visitor now holds a session, because RLS needs an `auth.uid()` to
+   * key on — so "has a user" no longer means "has an account". This stays
+   * account-shaped, which is what the profile and menu affordances care about.
+   */
   isAuthenticated: boolean;
+  /** True for a guest session created by `signInAnonymously()`. */
+  isAnonymous: boolean;
   isLoading: boolean;
 }
 
@@ -72,7 +81,6 @@ export function useAuth(): AuthState {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, currentSession) => {
-        console.log("[useAuth] Auth state changed:", _event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
@@ -85,10 +93,13 @@ export function useAuth(): AuthState {
     };
   }, []);
 
+  const isAnonymous = user?.is_anonymous === true;
+
   return {
     user,
     session,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !isAnonymous,
+    isAnonymous,
     isLoading,
   };
 }

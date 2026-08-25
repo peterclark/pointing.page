@@ -196,6 +196,18 @@ export type Database = {
         Args: { room_id_param: string }
         Returns: undefined
       }
+      is_room_leader: {
+        Args: { target_room_id: string }
+        Returns: boolean
+      }
+      owns_participant: {
+        Args: { target_participant_id: string }
+        Returns: boolean
+      }
+      reveal_votes: {
+        Args: { target_story_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       point_scale_enum: "fibonacci" | "t-shirt"

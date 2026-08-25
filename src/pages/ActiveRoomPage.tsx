@@ -16,6 +16,7 @@ import { getRoomByCode, joinRoom } from "@/lib/supabase/queries";
 import type { Tables } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRoomSubscription } from "@/hooks/useRoomSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { StoryForm } from "@/components/StoryForm";
 import { VotingButtons } from "@/components/VotingButtons";
 import { ParticipantStatus } from "@/components/ParticipantStatus";
@@ -50,14 +51,10 @@ export function ActiveRoomPage() {
   const [room, setRoom] = useState<Tables<"rooms"> | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
 
-  // Get participant ID from localStorage (reactive - updates when localStorage changes)
-  const [participantId, setParticipantId] = useState<string>("");
-
-  useEffect(() => {
-    // Get the participant ID from localStorage, or the generated one
-    const id = localStorage.getItem("participant_id") || "";
-    setParticipantId(id);
-  }, []); // Only run once on mount
+  // Identity comes from the session, not localStorage. The `participant_id` key
+  // carried two incompatible meanings — a generated device id in one place, a
+  // participants row id in another — and only ever tracked the most recent room.
+  const { user } = useAuth();
 
   // Validate room exists on mount
   useEffect(() => {
@@ -115,9 +112,12 @@ export function ActiveRoomPage() {
 
   // Find current participant in the room
   const currentParticipant = useMemo(
-    () => participants.find((p) => p.id === participantId),
-    [participants, participantId]
+    () => (user ? participants.find((p) => p.user_id === user.id) : undefined),
+    [participants, user]
   );
+
+  // Votes are keyed by participant row, so vote lookups still need that id.
+  const participantId = currentParticipant?.id ?? "";
 
   // Show toast when reconnecting
   useEffect(() => {
@@ -189,16 +189,17 @@ export function ActiveRoomPage() {
     e.preventDefault();
     if (!room || !joinName.trim() || isJoining) return;
 
+    if (!user) {
+      toast.error("Still starting your session. Please try again.");
+      return;
+    }
+
     setIsJoining(true);
     try {
-      const participant = await joinRoom(room.id, null, joinName.trim());
+      await joinRoom(room.id, user.id, joinName.trim());
 
-      // Save participant ID and name to localStorage
-      localStorage.setItem("participant_id", participant.id);
+      // Remembered only to pre-fill the name field next time.
       saveParticipantName(joinName.trim());
-
-      // Update the local participant ID state
-      setParticipantId(participant.id);
 
       // Hide join form - participant will now be in the subscription data
       setShowJoinForm(false);
