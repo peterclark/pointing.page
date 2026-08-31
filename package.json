@@ -38,7 +38,7 @@
     "@supabase/supabase-js": "^2.86.2",
     "@tailwindcss/vite": "^4.1.16",
     "@tsparticles/engine": "^3.9.1",
-    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/react": "^4.3.2",
     "@tsparticles/slim": "^3.9.1",
     "@vitejs/plugin-react": "^5.0.4",
     "class-variance-authority": "^0.7.1",
