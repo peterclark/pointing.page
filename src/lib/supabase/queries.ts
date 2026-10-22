@@ -58,10 +58,10 @@ export async function getRoomByCode(
   roomCode: string
 ): Promise<Tables<'rooms'> | null> {
   try {
+    // Rooms are readable directly only by their members, so a visitor who has
+    // the code but has not joined yet looks the room up through this function.
     const { data, error } = await supabase
-      .from('rooms')
-      .select('*')
-      .eq('room_code', roomCode.toUpperCase())
+      .rpc('get_room_by_code', { code: roomCode.toUpperCase() })
       .maybeSingle();
 
     if (error) {

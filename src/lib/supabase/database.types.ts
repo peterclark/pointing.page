@@ -233,6 +233,10 @@ export type Database = {
         Returns: Database["public"]["Tables"]["rooms"]["Row"]
       }
       generate_room_code: { Args: never; Returns: string }
+      get_room_by_code: {
+        Args: { code: string }
+        Returns: Database["public"]["Tables"]["rooms"]["Row"][]
+      }
       join_room: {
         Args: { target_room_id: string; display_name: string }
         Returns: Database["public"]["Tables"]["participants"]["Row"]
@@ -240,6 +244,14 @@ export type Database = {
       promote_new_leader: {
         Args: { room_id_param: string }
         Returns: undefined
+      }
+      is_room_member: {
+        Args: { target_room_id: string }
+        Returns: boolean
+      }
+      is_story_member: {
+        Args: { target_story_id: string }
+        Returns: boolean
       }
       is_room_leader: {
         Args: { target_room_id: string }

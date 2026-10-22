@@ -26,7 +26,7 @@
  * ```
  */
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type {
   RealtimeChannel,
   RealtimePostgresChangesPayload,
@@ -59,6 +59,51 @@ export interface RoomSubscriptionData {
   isLoading: boolean;
   error: Error | null;
   isReconnecting: boolean;
+  /**
+   * Reload stories and participants.
+   *
+   * Room data is readable only by members, so a visitor's first load comes back
+   * empty. Call this once they have joined to fill the board.
+   */
+  refetch: () => void;
+}
+
+/**
+ * Load a room's stories and participants, oldest first.
+ *
+ * Votes are not fetched here: they belong to whichever story is active, and the
+ * hook loads and subscribes to exactly that set separately.
+ */
+async function fetchRoomData(roomId: string): Promise<{
+  stories: Tables<"stories">[];
+  participants: Tables<"participants">[];
+}> {
+  const [storiesResult, participantsResult] = await Promise.all([
+    supabase
+      .from("stories")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("participants")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("joined_at", { ascending: true }),
+  ]);
+
+  if (storiesResult.error) {
+    throw new Error(`Failed to fetch stories: ${storiesResult.error.message}`);
+  }
+  if (participantsResult.error) {
+    throw new Error(
+      `Failed to fetch participants: ${participantsResult.error.message}`
+    );
+  }
+
+  return {
+    stories: storiesResult.data || [],
+    participants: participantsResult.data || [],
+  };
 }
 
 /**
@@ -79,6 +124,10 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
+
+  // Bumped by refetch(); the reload effect below runs on every change.
+  const [reloadToken, setReloadToken] = useState(0);
+  const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
 
   // Track consecutive connection errors
   const errorCountRef = useRef<number>(0);
@@ -121,37 +170,13 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     // Fetch initial data for all tables
     const fetchInitialData = async () => {
       try {
-        // Votes are not fetched here: they belong to whichever story is active,
-        // and the effect below owns loading and subscribing to exactly that set.
-        const [storiesResult, participantsResult] = await Promise.all([
-          supabase
-            .from("stories")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("created_at", { ascending: true }),
-          supabase
-            .from("participants")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("joined_at", { ascending: true }),
-        ]);
-
-        // Check for errors
-        if (storiesResult.error) {
-          throw new Error(
-            `Failed to fetch stories: ${storiesResult.error.message}`
-          );
-        }
-        if (participantsResult.error) {
-          throw new Error(
-            `Failed to fetch participants: ${participantsResult.error.message}`
-          );
-        }
+        const { stories: fetchedStories, participants: fetchedParticipants } =
+          await fetchRoomData(roomId);
 
         // Update state only if component is still mounted
         if (isMounted) {
-          setStories(storiesResult.data || []);
-          setParticipants(participantsResult.data || []);
+          setStories(fetchedStories);
+          setParticipants(fetchedParticipants);
           setIsLoading(false);
         }
       } catch (err) {
@@ -284,6 +309,27 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
       window.removeEventListener("offline", handleOffline);
     };
   }, [roomId]); // Only re-run when roomId changes
+
+  useEffect(() => {
+    if (!roomId || reloadToken === 0) return;
+
+    let isMounted = true;
+
+    fetchRoomData(roomId)
+      .then((data) => {
+        if (!isMounted) return;
+        setStories(data.stories);
+        setParticipants(data.participants);
+      })
+      .catch((err) => {
+        // A failed reload leaves the board as it was; realtime keeps it moving.
+        console.error("[useRoomSubscription] Reload failed:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [roomId, reloadToken]);
 
   // Only the active story's votes are ever displayed, so that is the only set
   // worth loading or listening to.
@@ -428,5 +474,6 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     isLoading,
     error,
     isReconnecting,
+    refetch,
   };
 }

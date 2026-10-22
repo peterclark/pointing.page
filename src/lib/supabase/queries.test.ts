@@ -92,24 +92,29 @@ beforeEach(() => {
 });
 
 describe("getRoomByCode", () => {
-  it("uppercases the code before querying and returns the room", async () => {
-    const [q] = queueFrom(mockQuery({ data: room }));
+  it("looks the room up through get_room_by_code with the code uppercased", async () => {
+    const rpc = mockQuery({ data: room });
+    vi.mocked(supabase.rpc).mockReturnValue(rpc as never);
 
     await expect(getRoomByCode("abc12345")).resolves.toEqual(room);
 
-    expect(supabase.from).toHaveBeenCalledWith("rooms");
-    expect(q.argsFor("eq")).toEqual(["room_code", "ABC12345"]);
-    expect(q.methods).toContain("maybeSingle");
+    // Rooms are readable directly only by members, so a visitor holding the
+    // code goes through the function rather than selecting from rooms.
+    expect(supabase.rpc).toHaveBeenCalledWith("get_room_by_code", { code: "ABC12345" });
+    expect(rpc.methods).toContain("maybeSingle");
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
   it("returns null when no room matches", async () => {
-    queueFrom(mockQuery({ data: null }));
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: null }) as never);
 
     await expect(getRoomByCode("ZZZZZZZZ")).resolves.toBeNull();
   });
 
   it("wraps a query failure in a DatabaseError carrying the PostgREST code", async () => {
-    queueFrom(mockQueryError("connection reset", "08006"));
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQueryError("connection reset", "08006") as never
+    );
 
     const error = await getRoomByCode("ABC12345").catch((e) => e);
 

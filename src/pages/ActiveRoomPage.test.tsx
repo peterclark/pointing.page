@@ -10,7 +10,7 @@
  * - Error scenarios
  */
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { BrowserRouter, Routes, Route, MemoryRouter } from "react-router-dom";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ActiveRoomPage } from "./ActiveRoomPage";
@@ -114,6 +114,32 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
   afterEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+  });
+
+  describe("Joining", () => {
+    it("reloads the board after joining, since room data is members-only", async () => {
+      const refetch = vi.fn();
+      vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
+        stories: [],
+        votes: [],
+        votedParticipantIds: new Set<string>(),
+        participants: [],
+        isLoading: false,
+        error: null,
+        isReconnecting: false,
+        refetch,
+      });
+      vi.mocked(queries.joinRoom).mockResolvedValue(createMockParticipant());
+
+      renderPage();
+
+      const nameInput = await screen.findByLabelText(/your name/i);
+      fireEvent.change(nameInput, { target: { value: "Ada" } });
+      fireEvent.click(screen.getByRole("button", { name: /join room/i }));
+
+      await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+      expect(queries.joinRoom).toHaveBeenCalledWith("room-123", "Ada");
+    });
   });
 
   describe("Page Loading and Setup", () => {
