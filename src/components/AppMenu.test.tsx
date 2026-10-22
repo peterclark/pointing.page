@@ -317,11 +317,15 @@ describe("AppMenu", () => {
       expect(mocks.showHelp).toHaveBeenCalled();
     });
 
-    it("tells the user Support is not built yet", async () => {
-      const click = await openMenu();
-      await click("Support");
+    it("links Support to the issue tracker in a new tab", async () => {
+      await openMenu();
+      const support = screen.getByRole("menuitem", { name: "Support" });
 
-      expect(mocks.toastInfo).toHaveBeenCalledWith("Support page coming soon!");
+      expect(support).toHaveAttribute(
+        "href",
+        "https://github.com/peterclark/pointing.page/issues/new"
+      );
+      expect(support).toHaveAttribute("target", "_blank");
     });
 
     it("shows the user's recent rooms in the Rooms submenu", async () => {
