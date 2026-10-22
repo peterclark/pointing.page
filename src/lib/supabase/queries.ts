@@ -18,7 +18,7 @@
  * ```
  *
  * @see /docs/database-schema.md for schema documentation
- * @see /docs/rls-policies.md for access control details
+ * @see /docs/security-model.md for access control details
  */
 
 import { supabase } from './client';

@@ -1021,5 +1021,5 @@ test('subscription receives updates', async () => {
 - [Database Schema Documentation](/docs/database-schema.md) - Complete schema reference
 - [Database Migrations Guide](/docs/database-migrations.md) - Modifying the schema
 - [Real-time Subscriptions](/docs/realtime-subscriptions.md) - Live updates guide
-- [RLS Policies Documentation](/docs/rls-policies.md) - Security and access control
+- [Security Model](/docs/security-model.md) - Security and access control
 - [Environment Setup Guide](/docs/environment-setup.md) - Setting up your environment

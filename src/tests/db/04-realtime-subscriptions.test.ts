@@ -9,7 +9,7 @@
  *
  * NOTE: These tests verify the infrastructure is set up correctly.
  * Full event delivery testing requires a browser environment with WebSocket support.
- * For manual testing of real-time events, use `/test-realtime.html`.
+ * For a manual check, open the same room in two browsers and vote.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

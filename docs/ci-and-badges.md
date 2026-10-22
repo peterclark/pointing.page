@@ -80,12 +80,12 @@ Two ways to fix that:
 
 ### Option A — make the repository public
 
-Nothing else changes; every badge URL below starts working immediately. Before
-flipping visibility, note that the repository currently contains a committed
-Supabase project URL and anon key (`.env.local.cloud.backup`,
-`verify-rls-policies.html`) guarding a database whose RLS policies are all
-`USING (true)`. Rotate those and tighten the policies first — see the review
-notes for detail.
+Nothing else changes; every badge URL below starts working immediately. The
+anon key is public by design, and access is enforced by RLS and column
+privileges (see `docs/security-model.md`), so no secret is exposed. The
+dev project's URL and anon key remain in git history from a previously
+committed `.env.local.cloud.backup`; that is harmless, but rotate the dev key
+if you prefer a clean history.
 
 ### Option B — stay private, publish badge data to a public gist
 

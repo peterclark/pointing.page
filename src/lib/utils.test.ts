@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   generateRoomName,
   formatRoomCode,
-  getParticipantId,
   getParticipantName,
   saveParticipantName,
   copyToClipboard,
@@ -48,17 +47,6 @@ describe("localStorage Utilities", () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-  });
-
-  it("generates and persists participant ID on first call", () => {
-    const id1 = getParticipantId();
-    const id2 = getParticipantId();
-
-    // Should be a valid UUID format
-    expect(id1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-
-    // Should return same ID on subsequent calls
-    expect(id1).toBe(id2);
   });
 
   it("saves and retrieves participant name", () => {

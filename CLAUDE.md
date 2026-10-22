@@ -144,7 +144,7 @@ Page uses state machine pattern with 3 distinct states:
 
 **State Determination**:
 - Active story: `stories.find(s => s.is_active)`
-- Is revealed: `votes.some(v => v.story_id === activeStory.id && v.is_revealed)`
+- Is revealed: `Boolean(activeStory.revealed_at)` (set by `reveal_votes()`, so a story with no votes can still be revealed)
 - Is leader: `currentParticipant?.is_leader`
 
 ### Form Validation Pattern
@@ -237,8 +237,8 @@ OAuth-based authentication using Google and Github providers via Supabase:
 1. Unauthenticated users see LoginForm component with Google and Github buttons
 2. OAuth redirect to provider for authorization
 3. Callback to landing page (/) after successful auth
-4. Automatic account linking: anonymous localStorage participant ID → authenticated user_id
-5. Profile creation with OAuth metadata (display_name, email, avatar_url)
+4. `linkIdentity()` upgrades the anonymous user in place, so `auth.uid()` and every participant row stay the same
+5. ProfilePage replaces the trigger's "Guest xxxxxxxx" display name with the OAuth name
 
 **Key Components**:
 - **LoginForm**: Social auth buttons with Google and Github providers
@@ -249,7 +249,7 @@ OAuth-based authentication using Google and Github providers via Supabase:
 - **ProfilePage**: Conditional rendering based on auth state
   - Unauthenticated: Shows LoginForm with social auth options
   - Authenticated: Shows profile with avatar, email (read-only), and editable display name
-  - Auto-links anonymous participants on first auth (via `linkingAttemptedRef`)
+  - Upgrades the guest profile name once on first sign-in (via `linkingAttemptedRef`)
 
 - **AppMenu**: Hamburger menu with conditional trigger
   - Unauthenticated: Shows MenuIcon (three bars)
@@ -262,16 +262,9 @@ OAuth-based authentication using Google and Github providers via Supabase:
 - **Display Name**: `user.user_metadata.display_name` or `user.user_metadata.full_name`
 - **Email**: `user.email` (always read-only from OAuth provider)
 
-**Account Linking**:
-```typescript
-// On first authentication, link anonymous participants to user
-if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
-  const localStorageId = getParticipantId();
-  if (localStorageId) {
-    await linkParticipantsToUser(localStorageId, user.id);
-  }
-}
-```
+**Account Linking**: none is needed. Because sign-in links the provider
+identity to the existing anonymous user, the user id never changes and rooms
+joined as a guest stay attached.
 
 **Setup Requirements**:
 - Configure OAuth providers in Supabase dashboard (see OAUTH_SETUP.md)
@@ -283,7 +276,7 @@ if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
 - Authentication is optional for using the app
 - Anonymous users can join rooms, vote, and participate fully
 - Authentication only required for features like room history and saved preferences
-- localStorage participant ID system unchanged
+- Signing out drops the anonymous identity; the next visit gets a new guest user
 
 
 ## Database Schema Key Points
@@ -291,9 +284,14 @@ if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
 ### Tables
 - **rooms**: id, room_code (unique 8-char), name, point_scale, leader_id, created_at
 - **participants**: id, room_id, user_id (nullable), name, is_leader, is_active, joined_at
-- **stories**: id, room_id, title, description, is_active, final_average, created_at
+- **stories**: id, room_id, title, description, is_active, final_average, revealed_at, created_at
 - **votes**: id, story_id, participant_id, point_value, is_revealed, sentiment, created_at
+- **vote_receipts**: story_id, participant_id, voted_at (who has voted, never what; written by trigger)
 - **profiles**: id, user_id, display_name, created_at
+
+Stories also carry `revealed_at`. Rooms and participants are created only
+through `create_room()` and `join_room()`; see `docs/security-model.md` for
+every read and write rule.
 
 ### Key Relationships
 - Room has many participants (one marked as leader via `leader_id`)
@@ -304,7 +302,7 @@ if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
 ### Important Columns
 - `is_active`: Boolean on stories and participants (soft delete pattern)
 - `is_revealed`: Boolean on votes (controls visibility)
-- `is_leader`: Boolean on participants (controls permissions)
+- `is_leader`: Boolean on participants (controls permissions; only database functions can set it)
 - `point_scale`: Enum 'fibonacci' | 't-shirt' on rooms
 
 ## Testing Patterns
@@ -371,9 +369,10 @@ All components install to `src/components/ui/` per components.json:17.
 ### Vote Privacy (CRITICAL)
 Vote privacy is enforced at multiple layers:
 1. **Database RLS**: enforced. `votes_select` is
-   `USING (is_revealed OR owns_participant(participant_id))`, so an unrevealed
-   `point_value` is readable only by the participant who cast it — from the REST
-   API, from Realtime, from anywhere. This works because `SessionGate` signs
+   `USING (owns_participant(participant_id) OR (is_revealed AND is_story_member(story_id)))`,
+   so an unrevealed `point_value` is readable only by the participant who cast
+   it, and revealed votes only by members of the room — from the REST API, from
+   Realtime, from anywhere. This works because `SessionGate` signs
    every visitor in anonymously before the first query, giving RLS an
    `auth.uid()` to key on. Revealing goes through the leader-only
    `reveal_votes()` function, because RLS grants per row and never per column.
