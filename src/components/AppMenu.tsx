@@ -25,13 +25,14 @@ import { useNavigate } from "react-router-dom";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useAuth } from "@/hooks/useAuth";
 import { CurrentUserAvatar } from "@/components/current-user-avatar";
+import { RecentRoomsMenuItems } from "@/components/RecentRoomsMenuItems";
 import { signOut } from "@/lib/supabase/auth";
 import { toast } from "sonner";
 
 export function AppMenu() {
   const { setTheme } = useTheme();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { registerCommand, showHelp, openCreateRoomDialog } =
     useCommandPalette();
   const [isOpen, setIsOpen] = useState(false);
@@ -192,7 +193,7 @@ export function AppMenu() {
               <DropdownMenuSubTrigger>Rooms</DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent>
-                  <DropdownMenuItem>Active room here...</DropdownMenuItem>
+                  <RecentRoomsMenuItems userId={user?.id} />
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>

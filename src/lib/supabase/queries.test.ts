@@ -16,6 +16,7 @@ import {
   updateRoom,
   joinRoom,
   getActiveParticipants,
+  getRecentRooms,
   leaveRoom,
   createStory,
   setActiveStory,
@@ -289,6 +290,32 @@ describe("getActiveParticipants", () => {
     queueFrom(mockQuery({ data: null }));
 
     await expect(getActiveParticipants("room-1")).resolves.toEqual([]);
+  });
+});
+
+describe("getRecentRooms", () => {
+  it("lists the user's rooms, newest first, skipping rooms that are gone", async () => {
+    const [q] = queueFrom(
+      mockQuery({
+        data: [
+          { is_leader: true, joined_at: "2024-01-02", room: { room_code: "ABC12345", name: "Sprint" } },
+          { is_leader: false, joined_at: "2024-01-01", room: null },
+        ],
+      })
+    );
+
+    await expect(getRecentRooms("user-1")).resolves.toEqual([
+      { room_code: "ABC12345", name: "Sprint", is_leader: true, joined_at: "2024-01-02" },
+    ]);
+    expect(q.argsFor("eq")).toEqual(["user_id", "user-1"]);
+    expect(q.argsFor("order")).toEqual(["joined_at", { ascending: false }]);
+    expect(q.argsFor("limit")).toEqual([5]);
+  });
+
+  it("wraps query errors", async () => {
+    queueFrom(mockQueryError("boom"));
+
+    await expect(getRecentRooms("user-1")).rejects.toThrow(DatabaseError);
   });
 });
 
