@@ -76,6 +76,7 @@ const createMockStory = (overrides?: Partial<Tables<"stories">>): Tables<"storie
   is_active: true,
   created_at: "2025-01-01T00:00:00Z",
   final_average: null,
+  revealed_at: null,
   ...overrides,
 });
 
@@ -233,7 +234,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
 
   describe("State 2: Active Story (Not Revealed) - Voting Interface", () => {
     it("should display voting interface when story is active and not revealed", async () => {
-      const mockStory = createMockStory({ is_active: true, reveal_at: null });
+      const mockStory = createMockStory({ is_active: true, revealed_at: null });
       const mockParticipant = createMockParticipant();
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
         stories: [mockStory],
@@ -344,7 +345,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
     it("should display results when story is revealed", async () => {
       const mockStory = createMockStory({
         is_active: true,
-        reveal_at: "2025-01-01T12:00:00Z", // Revealed
+        revealed_at: "2025-01-01T12:00:00Z", // Revealed
       });
       const mockParticipant = createMockParticipant();
       const mockVote = createMockVote({ is_revealed: true, point_value: "5" });
@@ -372,7 +373,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
     });
 
     it("should show next story button to leader after reveal", async () => {
-      const mockStory = createMockStory({ reveal_at: "2025-01-01T12:00:00Z" });
+      const mockStory = createMockStory({ revealed_at: "2025-01-01T12:00:00Z" });
       const mockLeader = createMockParticipant({ is_leader: true });
       const mockVote = createMockVote({ is_revealed: true });
 
@@ -397,7 +398,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
     });
 
     it("should NOT show next story button to non-leader after reveal", async () => {
-      const mockStory = createMockStory({ reveal_at: "2025-01-01T12:00:00Z" });
+      const mockStory = createMockStory({ revealed_at: "2025-01-01T12:00:00Z" });
       const mockParticipant = createMockParticipant({ is_leader: false });
       const mockVote = createMockVote({ is_revealed: true });
 
@@ -427,7 +428,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
 
   describe("Vote Privacy Enforcement (CRITICAL)", () => {
     it.skip("should only show participant's own vote before reveal", async () => {
-      const mockStory = createMockStory({ reveal_at: null }); // Not revealed
+      const mockStory = createMockStory({ revealed_at: null }); // Not revealed
       const mockParticipant1 = createMockParticipant({
         participant_id: "user-123", // Current user
       });
@@ -477,7 +478,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
 
     it("should show all votes after reveal", async () => {
       const mockStory = createMockStory({
-        reveal_at: "2025-01-01T12:00:00Z", // Revealed
+        revealed_at: "2025-01-01T12:00:00Z", // Revealed
       });
       const mockParticipant1 = createMockParticipant({
         participant_id: "user-123",
@@ -525,7 +526,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
     });
 
     it.skip("should enforce privacy even if RLS fails (defense in depth)", async () => {
-      const mockStory = createMockStory({ reveal_at: null });
+      const mockStory = createMockStory({ revealed_at: null });
       const mockParticipant = createMockParticipant({ participant_id: "user-123" });
 
       // Simulate RLS leak - vote data includes unrevealed votes from others
@@ -615,7 +616,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
     });
 
     it("should update when votes are revealed (real-time)", async () => {
-      const mockStory = createMockStory({ reveal_at: null }); // Not revealed initially
+      const mockStory = createMockStory({ revealed_at: null }); // Not revealed initially
       const mockParticipant = createMockParticipant();
       const mockVote = createMockVote({ is_revealed: false });
 
@@ -636,7 +637,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       });
 
       // Simulate reveal update
-      const revealedStory = { ...mockStory, reveal_at: "2025-01-01T12:00:00Z" };
+      const revealedStory = { ...mockStory, revealed_at: "2025-01-01T12:00:00Z" };
       const revealedVote = { ...mockVote, is_revealed: true };
 
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({

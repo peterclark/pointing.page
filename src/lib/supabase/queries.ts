@@ -376,50 +376,26 @@ export async function createStory(
 }
 
 /**
- * Set a story as active (deactivates all other stories in the room)
+ * Make a story the room's only active story
  *
- * Only the room leader can activate stories.
- * RLS policies enforce this restriction at the database level.
+ * Goes through the `set_active_story` database function, which checks
+ * leadership and switches every story in the room in one statement, so there
+ * is never a moment with zero or two active stories.
  *
  * @param storyId - UUID of the story to activate
  * @returns The updated story data
- * @throws DatabaseError if update fails or user is not leader
+ * @throws DatabaseError if the caller is not the leader or the update fails
  */
 export async function setActiveStory(
   storyId: string
 ): Promise<Tables<'stories'>> {
   try {
-    // Get the story to find its room_id
-    const { data: story, error: storyError } = await supabase
-      .from('stories')
-      .select('room_id')
-      .eq('id', storyId)
-      .single();
-
-    if (storyError || !story) {
-      throw new DatabaseError(
-        `Failed to get story: ${storyError?.message || 'Story not found'}`,
-        storyError?.code,
-        storyError
-      );
-    }
-
-    // Deactivate all stories in the room
-    await supabase
-      .from('stories')
-      .update({ is_active: false })
-      .eq('room_id', story.room_id);
-
-    // Activate the target story
     const { data, error } = await supabase
-      .from('stories')
-      .update({ is_active: true })
-      .eq('id', storyId)
-      .select()
+      .rpc('set_active_story', { target_story_id: storyId })
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if (error.code === '42501') {
         throw new DatabaseError(
           'Only the room leader can activate stories',
           error.code,
@@ -442,6 +418,54 @@ export async function setActiveStory(
     if (err instanceof DatabaseError) throw err;
     throw new DatabaseError(
       'Unexpected error while activating story',
+      undefined,
+      err
+    );
+  }
+}
+
+/**
+ * Start a new voting round on a story
+ *
+ * Goes through the `revote_story` database function, which copies the story
+ * and makes the copy active. The revealed round keeps its votes and result.
+ *
+ * @param storyId - UUID of the revealed story to vote on again
+ * @returns The new, active story
+ * @throws DatabaseError if the caller is not the leader or the copy fails
+ */
+export async function revoteStory(
+  storyId: string
+): Promise<Tables<'stories'>> {
+  try {
+    const { data, error } = await supabase
+      .rpc('revote_story', { target_story_id: storyId })
+      .single();
+
+    if (error) {
+      if (error.code === '42501') {
+        throw new DatabaseError(
+          'Only the room leader can start a new round',
+          error.code,
+          error
+        );
+      }
+      throw new DatabaseError(
+        `Failed to start a new round: ${error.message}`,
+        error.code,
+        error
+      );
+    }
+
+    if (!data) {
+      throw new DatabaseError('New round started but no data returned');
+    }
+
+    return data;
+  } catch (err) {
+    if (err instanceof DatabaseError) throw err;
+    throw new DatabaseError(
+      'Unexpected error while starting a new round',
       undefined,
       err
     );
@@ -593,6 +617,9 @@ export async function submitVote(
 /**
  * Reveal all votes for a story
  *
+ * Also marks the story revealed and records the mean of its numeric votes as
+ * `final_average`, so a story with no votes can still be revealed.
+ *
  * Goes through the `reveal_votes` database function rather than an UPDATE.
  * RLS grants permission per row, never per column, so a leader-shaped UPDATE
  * policy on votes would also let the leader rewrite other people's estimates.
@@ -666,50 +693,6 @@ export async function getStoryVotes(
     if (err instanceof DatabaseError) throw err;
     throw new DatabaseError(
       'Unexpected error while getting story votes',
-      undefined,
-      err
-    );
-  }
-}
-
-/**
- * Update the final average for a story after votes are revealed
- *
- * Only the room leader can update story data.
- * RLS policies enforce this restriction at the database level.
- *
- * @param storyId - UUID of the story
- * @param finalAverage - The calculated average estimate
- * @throws DatabaseError if update fails or user is not leader
- */
-export async function updateStoryAverage(
-  storyId: string,
-  finalAverage: number
-): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from('stories')
-      .update({ final_average: finalAverage })
-      .eq('id', storyId);
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        throw new DatabaseError(
-          'Only the room leader can update story data',
-          error.code,
-          error
-        );
-      }
-      throw new DatabaseError(
-        `Failed to update story average: ${error.message}`,
-        error.code,
-        error
-      );
-    }
-  } catch (err) {
-    if (err instanceof DatabaseError) throw err;
-    throw new DatabaseError(
-      'Unexpected error while updating story average',
       undefined,
       err
     );

@@ -165,12 +165,9 @@ export function ActiveRoomPage() {
     [stories]
   );
 
-  // Check if active story votes are revealed
-  // We check if any vote for the active story has is_revealed=true
-  const isRevealed = useMemo(() => {
-    if (!activeStory) return false;
-    return votes.some((v) => v.story_id === activeStory.id && v.is_revealed);
-  }, [activeStory, votes]);
+  // Reveal state lives on the story, so a story nobody voted on can still be
+  // revealed and moved past.
+  const isRevealed = Boolean(activeStory?.revealed_at);
 
   // Filter votes for privacy (participants only see their own unrevealed votes)
   const visibleVotes = useMemo(
