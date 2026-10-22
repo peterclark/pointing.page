@@ -13,6 +13,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useRoomSubscription } from './useRoomSubscription';
 import { supabase } from '@/lib/supabase/client';
 import type { Tables } from '@/lib/supabase/client';
+import { mockQuery } from '@/tests/supabase-mock';
 
 // Mock the supabase client
 vi.mock('@/lib/supabase/client', () => ({
@@ -825,4 +826,31 @@ describe('useRoomSubscription', () => {
     await waitFor(() => expect(result.current.votedParticipantIds.size).toBe(0));
   });
 
+  it('reloads stories and participants when refetch is called', async () => {
+    // Room data is readable only by members, so the first load for a visitor
+    // who has not joined yet comes back empty and must be repeated after joining.
+    const member: Tables<'participants'> = {
+      id: 'participant-1',
+      room_id: 'room-1',
+      name: 'Ada',
+      is_leader: false,
+      is_active: true,
+      joined_at: '2025-01-01T00:00:00Z',
+      user_id: 'user-1',
+    };
+    let participantsInDb: Tables<'participants'>[] = [];
+
+    vi.mocked(supabase.from).mockImplementation(((table: string) =>
+      mockQuery({ data: table === 'participants' ? participantsInDb : [] })) as never);
+
+    const { result } = renderHook(() => useRoomSubscription('room-1'));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.participants).toEqual([]);
+
+    participantsInDb = [member];
+    result.current.refetch();
+
+    await waitFor(() => expect(result.current.participants).toEqual([member]));
+  });
 });

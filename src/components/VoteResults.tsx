@@ -4,6 +4,7 @@ import {
   calculateFibonacciConsensus,
   calculateTshirtConsensus,
   isConsensusVote,
+  prefersReducedMotion,
   sortVotesByValue,
 } from "@/lib/utils";
 import { SparklesCore } from "./ui/sparkles";
@@ -108,17 +109,19 @@ export function VoteResults({
       <Card className="p-0">
         <CardContent className="p-2 text-center">
           <div className="h-36 relative w-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-xl">
-            <div className="w-full absolute inset-0 h-screen">
-              <SparklesCore
-                id="tsparticlesfullpage"
-                background="transparent"
-                minSize={0.6}
-                maxSize={1.4}
-                particleDensity={100}
-                className="w-full h-full"
-                particleColor="#FFFFFF"
-              />
-            </div>
+            {!prefersReducedMotion() && (
+              <div className="w-full absolute inset-0 h-screen">
+                <SparklesCore
+                  id="tsparticlesfullpage"
+                  background="transparent"
+                  minSize={0.6}
+                  maxSize={1.4}
+                  particleDensity={100}
+                  className="w-full h-full"
+                  particleColor="#FFFFFF"
+                />
+              </div>
+            )}
             <h1 className="md:text-7xl text-3xl lg:text-6xl font-bold text-center text-white relative z-20">
               <div className="text-6xl font-bold">{consensusDisplayValue}</div>
               <div className="text-sm text-muted-foreground mt-2">

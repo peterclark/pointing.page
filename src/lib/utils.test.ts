@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   generateRoomName,
   formatRoomCode,
-  getParticipantId,
   getParticipantName,
+  prefersReducedMotion,
   saveParticipantName,
   copyToClipboard,
   FIBONACCI_SCALE,
@@ -48,17 +48,6 @@ describe("localStorage Utilities", () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-  });
-
-  it("generates and persists participant ID on first call", () => {
-    const id1 = getParticipantId();
-    const id2 = getParticipantId();
-
-    // Should be a valid UUID format
-    expect(id1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-
-    // Should return same ID on subsequent calls
-    expect(id1).toBe(id2);
   });
 
   it("saves and retrieves participant name", () => {
@@ -349,5 +338,24 @@ describe("Vote Visibility Filtering", () => {
     expect(visible.some(v => v.participant_id === "user-1")).toBe(true);
     expect(visible.some(v => v.participant_id === "user-2")).toBe(true);
     expect(visible.some(v => v.participant_id === "user-3")).toBe(false);
+  });
+});
+
+describe("prefersReducedMotion", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("follows the prefers-reduced-motion media query", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({ matches: query.includes("reduce") }))
+    );
+    expect(prefersReducedMotion()).toBe(true);
+  });
+
+  it("is false where matchMedia is unavailable", () => {
+    vi.stubGlobal("matchMedia", undefined);
+    expect(prefersReducedMotion()).toBe(false);
   });
 });
