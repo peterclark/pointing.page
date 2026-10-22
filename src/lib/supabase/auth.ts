@@ -3,6 +3,10 @@ import { toast } from "sonner";
 import { getCaptchaToken } from "@/lib/captcha";
 import type { Session } from "@supabase/supabase-js";
 
+/** Shown when a write needs a session and `ensureSession` could not make one. */
+export const SESSION_ERROR =
+  "Couldn't start your session. Check your connection and try again.";
+
 /**
  * Guarantee the client has a session, signing in anonymously if it does not.
  *

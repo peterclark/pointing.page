@@ -19,6 +19,7 @@ import {
 } from "@/lib/utils";
 import { createRoom } from "@/lib/supabase/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { ensureSession, SESSION_ERROR } from "@/lib/supabase/auth";
 
 interface CreateRoomDialogProps {
   open: boolean;
@@ -85,8 +86,10 @@ export function CreateRoomDialog({
   }, [open, reset, preservedRoomName]);
 
   const onSubmit = async (data: CreateRoomFormData) => {
-    if (!user) {
-      onRoomCreationError("Still starting your session. Please try again.");
+    // The gate opens even when sign-in failed, so try once more here: that
+    // also retries the CAPTCHA, which is the usual reason it failed.
+    if (!user && !(await ensureSession())) {
+      onRoomCreationError(SESSION_ERROR);
       return;
     }
 

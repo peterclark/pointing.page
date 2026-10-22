@@ -20,6 +20,7 @@ import type { Tables } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRoomSubscription } from "@/hooks/useRoomSubscription";
 import { useAuth } from "@/hooks/useAuth";
+import { ensureSession, SESSION_ERROR } from "@/lib/supabase/auth";
 import { StoryForm } from "@/components/StoryForm";
 import { VotingButtons } from "@/components/VotingButtons";
 import { ParticipantStatus } from "@/components/ParticipantStatus";
@@ -196,8 +197,8 @@ export function ActiveRoomPage() {
     e.preventDefault();
     if (!room || !joinName.trim() || isJoining) return;
 
-    if (!user) {
-      toast.error("Still starting your session. Please try again.");
+    if (!user && !(await ensureSession())) {
+      toast.error(SESSION_ERROR);
       return;
     }
 

@@ -160,7 +160,7 @@ export function AppMenu() {
     <div className="fixed top-0 left-0 p-4 z-10">
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="link" size="icon">
+          <Button variant="link" size="icon" className="text-foreground">
             {isAuthenticated ? <CurrentUserAvatar /> : <MenuIcon />}
           </Button>
         </DropdownMenuTrigger>
