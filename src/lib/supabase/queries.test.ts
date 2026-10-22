@@ -24,7 +24,7 @@ import {
   submitVote,
   revealVotes,
   getStoryVotes,
-  updateStoryAverage,
+  revoteStory,
   DatabaseError,
 } from "./queries";
 import { supabase } from "./client";
@@ -284,27 +284,25 @@ describe("createStory", () => {
 });
 
 describe("setActiveStory", () => {
-  it("deactivates every story in the room before activating the target", async () => {
-    const [lookup, deactivate, activate] = queueFrom(
-      mockQuery({ data: { room_id: "room-1" } }),
-      mockQuery(),
-      mockQuery({ data: { ...story, is_active: true } })
+  it("switches the active story atomically through set_active_story", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQuery({ data: { ...story, is_active: true } }) as never
     );
 
     await expect(setActiveStory("story-1")).resolves.toMatchObject({ is_active: true });
 
-    expect(lookup.argsFor("select")).toEqual(["room_id"]);
-    expect(deactivate.argsFor("update")).toEqual([{ is_active: false }]);
-    expect(deactivate.argsFor("eq")).toEqual(["room_id", "room-1"]);
-    expect(activate.argsFor("update")).toEqual([{ is_active: true }]);
-    expect(activate.argsFor("eq")).toEqual(["id", "story-1"]);
+    expect(supabase.rpc).toHaveBeenCalledWith("set_active_story", {
+      target_story_id: "story-1",
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it("fails without touching other stories when the story is missing", async () => {
-    queueFrom(mockQuery({ data: null }));
+  it("surfaces the function's error when the story is missing", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQueryError("Story not found", "P0002") as never
+    );
 
     await expect(setActiveStory("missing")).rejects.toThrow(/Story not found/);
-    expect(supabase.from).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -427,21 +425,25 @@ describe("getStoryVotes", () => {
   });
 });
 
-describe("updateStoryAverage", () => {
-  it("writes the final average onto the story", async () => {
-    const [q] = queueFrom(mockQuery());
+describe("revoteStory", () => {
+  it("starts a new round through the revote_story function", async () => {
+    const fresh = { ...story, id: "story-2", is_active: true };
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: fresh }) as never);
 
-    await expect(updateStoryAverage("story-1", 5.5)).resolves.toBeUndefined();
+    await expect(revoteStory("story-1")).resolves.toEqual(fresh);
 
-    expect(q.argsFor("update")).toEqual([{ final_average: 5.5 }]);
-    expect(q.argsFor("eq")).toEqual(["id", "story-1"]);
+    expect(supabase.rpc).toHaveBeenCalledWith("revote_story", {
+      target_story_id: "story-1",
+    });
   });
 
-  it("reports a leader-only violation when RLS returns PGRST116", async () => {
-    queueFrom(mockQueryError("no rows", "PGRST116"));
+  it("reports a leader-only violation when the function refuses", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQueryError("Only the room leader can start a new round", "42501") as never
+    );
 
-    await expect(updateStoryAverage("story-1", 5.5)).rejects.toThrow(
-      /Only the room leader can update story data/
+    await expect(revoteStory("story-1")).rejects.toThrow(
+      /Only the room leader can start a new round/
     );
   });
 });
@@ -476,7 +478,7 @@ describe("unexpected failures", () => {
     ["submitVote", () => submitVote("story-1", "participant-1", "5"), /Unexpected error while submitting vote/],
     ["revealVotes", () => revealVotes("story-1"), /Unexpected error while revealing votes/],
     ["getStoryVotes", () => getStoryVotes("story-1"), /Unexpected error while getting story votes/],
-    ["updateStoryAverage", () => updateStoryAverage("story-1", 5), /Unexpected error while updating story average/],
+    ["revoteStory", () => revoteStory("story-1"), /Unexpected error while starting a new round/],
   ];
 
   it.each(cases)("%s wraps a transport failure in a DatabaseError", async (_name, call, message) => {
@@ -522,23 +524,17 @@ describe("missing-row guards", () => {
     );
   });
 
-  it("setActiveStory throws when the activation returns no row", async () => {
-    queueFrom(
-      mockQuery({ data: { room_id: "room-1" } }),
-      mockQuery(),
-      mockQuery({ data: null })
-    );
+  it("setActiveStory throws when the function returns no row", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: null }) as never);
 
     await expect(setActiveStory("story-1")).rejects.toThrow(
       /Story activated but no data returned/
     );
   });
 
-  it("setActiveStory reports a leader-only violation on activation", async () => {
-    queueFrom(
-      mockQuery({ data: { room_id: "room-1" } }),
-      mockQuery(),
-      mockQueryError("no rows", "PGRST116")
+  it("setActiveStory reports a leader-only violation", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQueryError("Only the room leader can activate stories", "42501") as never
     );
 
     await expect(setActiveStory("story-1")).rejects.toThrow(
@@ -572,23 +568,10 @@ describe("missing-row guards", () => {
     await expect(clearActiveStory("room-1")).rejects.toThrow(/Failed to clear active story/);
   });
 
-  it("updateStoryAverage wraps a non-RLS failure", async () => {
-    queueFrom(mockQueryError("boom"));
-
-    await expect(updateStoryAverage("story-1", 5)).rejects.toThrow(
-      /Failed to update story average/
-    );
-  });
-
   it("createStory wraps a non-RLS failure", async () => {
     queueFrom(mockQueryError("boom"));
 
     await expect(createStory("room-1", "Title")).rejects.toThrow(/Failed to create story/);
   });
 
-  it("setActiveStory wraps a lookup failure", async () => {
-    queueFrom(mockQueryError("boom"));
-
-    await expect(setActiveStory("story-1")).rejects.toThrow(/Failed to get story/);
-  });
 });

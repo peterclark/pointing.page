@@ -110,6 +110,7 @@ export type Database = {
           final_average: number | null
           id: string
           is_active: boolean
+          revealed_at: string | null
           room_id: string
           title: string
         }
@@ -119,6 +120,7 @@ export type Database = {
           final_average?: number | null
           id?: string
           is_active?: boolean
+          revealed_at?: string | null
           room_id: string
           title: string
         }
@@ -128,6 +130,7 @@ export type Database = {
           final_average?: number | null
           id?: string
           is_active?: boolean
+          revealed_at?: string | null
           room_id?: string
           title?: string
         }
@@ -261,9 +264,17 @@ export type Database = {
         Args: { target_participant_id: string }
         Returns: boolean
       }
+      revote_story: {
+        Args: { target_story_id: string }
+        Returns: Database["public"]["Tables"]["stories"]["Row"][]
+      }
       reveal_votes: {
         Args: { target_story_id: string }
         Returns: undefined
+      }
+      set_active_story: {
+        Args: { target_story_id: string }
+        Returns: Database["public"]["Tables"]["stories"]["Row"][]
       }
     }
     Enums: {

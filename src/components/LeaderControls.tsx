@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { revealVotes, clearActiveStory } from "@/lib/supabase/queries";
+import {
+  revealVotes,
+  clearActiveStory,
+  revoteStory,
+} from "@/lib/supabase/queries";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import { ChevronDoubleRightIcon } from "@heroicons/react/24/outline";
 
 interface LeaderControlsProps {
@@ -33,6 +37,7 @@ export function LeaderControls({
 }: LeaderControlsProps) {
   const [isRevealing, setIsRevealing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isRevoting, setIsRevoting] = useState(false);
 
   // Only render if user is the leader
   if (!isLeader) {
@@ -74,8 +79,23 @@ export function LeaderControls({
     }
   };
 
+  /**
+   * Starts a new round on a copy of the story, keeping this round's result
+   */
+  const handleVoteAgain = async () => {
+    setIsRevoting(true);
+    try {
+      await revoteStory(storyId);
+      toast.success("New round started");
+    } catch (_error) {
+      toast.error("Failed to start a new round. Please try again.");
+    } finally {
+      setIsRevoting(false);
+    }
+  };
+
   return (
-    <div className="flex gap-3 w-full sm:w-auto">
+    <div className="flex flex-col gap-3 w-full sm:w-auto sm:flex-row">
       {!isRevealed ? (
         // Before reveal: Show "Reveal Votes" button
         <Button
@@ -89,17 +109,33 @@ export function LeaderControls({
           Reveal Votes
         </Button>
       ) : (
-        // After reveal: Show "Next Story" button
-        <Button
-          onClick={handleNextStory}
-          disabled={isClearing}
-          size="lg"
-          className="w-full sm:w-auto"
-        >
-          {isClearing && <Loader2 className="h-4 w-4 animate-spin" />}
-          Next Story
-          <ChevronDoubleRightIcon />
-        </Button>
+        // After reveal: vote again on the same story, or move on
+        <>
+          <Button
+            onClick={handleVoteAgain}
+            disabled={isRevoting || isClearing}
+            size="lg"
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            {isRevoting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="h-4 w-4" />
+            )}
+            Vote Again
+          </Button>
+          <Button
+            onClick={handleNextStory}
+            disabled={isClearing || isRevoting}
+            size="lg"
+            className="w-full sm:w-auto"
+          >
+            {isClearing && <Loader2 className="h-4 w-4 animate-spin" />}
+            Next Story
+            <ChevronDoubleRightIcon />
+          </Button>
+        </>
       )}
     </div>
   );
