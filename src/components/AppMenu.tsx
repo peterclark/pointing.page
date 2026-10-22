@@ -89,7 +89,7 @@ export function AppMenu() {
       registerCommand({
         key: "s",
         description: "Settings",
-        action: () => toast.info("Settings page coming soon!"),
+        action: () => navigate("/settings"),
         category: "navigation",
       }),
 
@@ -186,6 +186,10 @@ export function AppMenu() {
             <DropdownMenuItem onClick={() => navigate("/profile")}>
               Account
               <DropdownMenuShortcut>⌘K P</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              Settings
+              <DropdownMenuShortcut>⌘K S</DropdownMenuShortcut>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuGroup>
