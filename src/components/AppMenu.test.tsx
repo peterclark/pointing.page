@@ -317,11 +317,15 @@ describe("AppMenu", () => {
       expect(mocks.showHelp).toHaveBeenCalled();
     });
 
-    it("tells the user Support is not built yet", async () => {
-      const click = await openMenu();
-      await click("Support");
+    it("links Support to the issue tracker in a new tab", async () => {
+      await openMenu();
+      const support = screen.getByRole("menuitem", { name: "Support" });
 
-      expect(mocks.toastInfo).toHaveBeenCalledWith("Support page coming soon!");
+      expect(support).toHaveAttribute(
+        "href",
+        "https://github.com/peterclark/pointing.page/issues/new"
+      );
+      expect(support).toHaveAttribute("target", "_blank");
     });
 
     it("shows the user's recent rooms in the Rooms submenu", async () => {
@@ -381,7 +385,7 @@ describe("AppMenu", () => {
       const commands = registeredCommands();
 
       expect([...commands.keys()].sort()).toEqual(
-        ["?", "b", "d", "h", "l", "p", "q", "r", "s", "t"].sort()
+        ["?", "d", "h", "l", "p", "q", "r", "s", "t"].sort()
       );
     });
 
@@ -417,13 +421,6 @@ describe("AppMenu", () => {
       expect(mocks.showHelp).toHaveBeenCalled();
     });
 
-    it.each(["b"])("⌘K %s reports an unbuilt page", (key) => {
-      registeredCommands().get(key)!();
-
-      expect(mocks.toastInfo).toHaveBeenCalledWith(
-        expect.stringContaining("coming soon")
-      );
-    });
 
     it("unregisters its commands on unmount", () => {
       const cleanup = vi.fn();
@@ -443,9 +440,9 @@ describe("AppMenu", () => {
       );
       unmount();
 
-      // Ten commands registered, ten torn down — otherwise a remount would
+      // Nine commands registered, nine torn down — otherwise a remount would
       // stack duplicate handlers.
-      expect(cleanup).toHaveBeenCalledTimes(10);
+      expect(cleanup).toHaveBeenCalledTimes(9);
     });
   });
 

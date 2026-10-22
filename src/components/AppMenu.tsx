@@ -29,6 +29,9 @@ import { RecentRoomsMenuItems } from "@/components/RecentRoomsMenuItems";
 import { signOut } from "@/lib/supabase/auth";
 import { toast } from "sonner";
 
+// Support requests go to the public issue tracker.
+const SUPPORT_URL = "https://github.com/peterclark/pointing.page/issues/new";
+
 export function AppMenu() {
   const { setTheme } = useTheme();
   const navigate = useNavigate();
@@ -78,12 +81,6 @@ export function AppMenu() {
         key: "p",
         description: "Profile",
         action: () => navigate("/profile"),
-        category: "navigation",
-      }),
-      registerCommand({
-        key: "b",
-        description: "Billing",
-        action: () => toast.info("Billing page coming soon!"),
         category: "navigation",
       }),
       registerCommand({
@@ -226,10 +223,10 @@ export function AppMenu() {
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => toast.info("Support page coming soon!")}
-          >
-            Support
+          <DropdownMenuItem asChild>
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+              Support
+            </a>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => showHelp()}>
             Keyboard shortcuts
