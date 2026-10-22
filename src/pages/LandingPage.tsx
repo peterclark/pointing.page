@@ -25,7 +25,7 @@ export function LandingPage() {
   const [dbOperationComplete, setDbOperationComplete] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [preservedRoomName, setPreservedRoomName] = useState<string | null>(
-    null
+    null,
   );
 
   const [joinCode, setJoinCode] = useState("");
@@ -64,7 +64,7 @@ export function LandingPage() {
       setDbOperationComplete(false);
       setLoadingError(null);
     },
-    [setIsCreateRoomDialogOpen]
+    [setIsCreateRoomDialogOpen],
   );
 
   // Handle room creation success
@@ -84,7 +84,7 @@ export function LandingPage() {
       // Reopen dialog with preserved room name
       setIsCreateRoomDialogOpen(true);
     },
-    [setIsCreateRoomDialogOpen]
+    [setIsCreateRoomDialogOpen],
   );
 
   // Reset error when dialog opens
@@ -105,50 +105,59 @@ export function LandingPage() {
         }
       }
     },
-    [isLoading, setIsCreateRoomDialogOpen]
+    [isLoading, setIsCreateRoomDialogOpen],
   );
 
   return (
     <div className="bg-black">
-      {!isCreateRoomDialogOpen && (
-        <WavyBackground className="mx-auto flex w-full flex-col items-center px-4">
-          <Header />
-          <TypewriterEffectSmooth words={tagline} />
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => setIsCreateRoomDialogOpen(true)}
-            className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 w-full max-w-[400px] self-center rounded-full border-2"
-          >
-            Enter
-          </Button>
-          <form
-            onSubmit={handleJoinByCode}
-            className="mt-6 flex w-full max-w-[400px] gap-2 self-center"
-            aria-label="Join a room with a code"
-          >
-            <Input
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              placeholder="Have a code? ABCD-1234"
-              aria-label="Room code"
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              maxLength={9}
-              className="h-11 rounded-full border-white/30 bg-transparent text-center font-mono tracking-wider text-white placeholder:text-white/40"
-            />
+      {/* The background and brand stay up behind the Create a Room card, moved
+          to the top so the card has room beneath them. */}
+      <WavyBackground
+        containerClassName={
+          isCreateRoomDialogOpen ? "justify-start pt-2 md:pt-12" : undefined
+        }
+        className="mx-auto flex w-full flex-col items-center px-4"
+      >
+        <Header />
+        {!isCreateRoomDialogOpen && (
+          <>
+            <TypewriterEffectSmooth words={tagline} />
             <Button
-              type="submit"
+              size="lg"
               variant="outline"
-              disabled={!isJoinCodeValid}
-              className="h-11 rounded-full border-white/50 bg-transparent text-white/75 hover:bg-white/10 hover:text-white"
+              onClick={() => setIsCreateRoomDialogOpen(true)}
+              className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 w-full max-w-[400px] self-center rounded-full border-2"
             >
-              Join
+              Enter
             </Button>
-          </form>
-        </WavyBackground>
-      )}
+            <form
+              onSubmit={handleJoinByCode}
+              className="mt-6 flex w-full max-w-[400px] gap-2 self-center"
+              aria-label="Join a room with a code"
+            >
+              <Input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                placeholder="Have a code? ABCD-1234"
+                aria-label="Room code"
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                maxLength={9}
+                className="h-11 rounded-full border-white/30 bg-transparent text-center font-mono tracking-wider text-white placeholder:text-white/40"
+              />
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={!isJoinCodeValid}
+                className="h-11 rounded-full border-white/50 bg-transparent text-white/75 hover:bg-white/10 hover:text-white"
+              >
+                Join
+              </Button>
+            </form>
+          </>
+        )}
+      </WavyBackground>
 
       <CreateRoomDialog
         open={isCreateRoomDialogOpen}
