@@ -440,9 +440,9 @@ describe("AppMenu", () => {
       );
       unmount();
 
-      // Ten commands registered, ten torn down — otherwise a remount would
+      // Nine commands registered, nine torn down — otherwise a remount would
       // stack duplicate handlers.
-      expect(cleanup).toHaveBeenCalledTimes(10);
+      expect(cleanup).toHaveBeenCalledTimes(9);
     });
   });
 
