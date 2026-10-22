@@ -143,12 +143,8 @@ describe("Room Creation Flow Integration", () => {
     await waitFor(() => {
       expect(queries.createRoom).toHaveBeenCalledWith(
         expect.stringMatching(/^[A-Z][a-z]+-[A-Z][a-z]+$/),
+        "Test User",
         "fibonacci"
-      );
-      expect(queries.joinRoom).toHaveBeenCalledWith(
-        "room-uuid",
-        null,
-        "Test User"
       );
     });
 

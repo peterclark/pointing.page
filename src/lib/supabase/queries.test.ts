@@ -120,47 +120,47 @@ describe("getRoomByCode", () => {
 });
 
 describe("createRoom", () => {
-  it("generates a room code via RPC and inserts the room", async () => {
-    vi.mocked(supabase.rpc).mockReturnValue(
-       
-      mockQuery({ data: "ABC12345" }) as any
-    );
-    const [q] = queueFrom(mockQuery({ data: room }));
+  it("creates the room and its leader through the create_room function", async () => {
+    const rpc = mockQuery({ data: room });
+    vi.mocked(supabase.rpc).mockReturnValue(rpc as never);
 
-    await expect(createRoom("Sprint Planning", "fibonacci")).resolves.toEqual(room);
+    await expect(createRoom("Sprint Planning", "Ada", "t-shirt")).resolves.toEqual(room);
 
-    expect(supabase.rpc).toHaveBeenCalledWith("generate_room_code");
-    expect(q.argsFor("insert")).toEqual([
-      { name: "Sprint Planning", point_scale: "fibonacci", room_code: "ABC12345" },
-    ]);
-  });
-
-  it("defaults to the fibonacci scale", async () => {
-     
-    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: "ABC12345" }) as any);
-    const [q] = queueFrom(mockQuery({ data: room }));
-
-    await createRoom("Sprint Planning");
-
-    expect(q.argsFor("insert")?.[0]).toMatchObject({ point_scale: "fibonacci" });
-  });
-
-  it("fails before inserting when the code RPC errors", async () => {
-    vi.mocked(supabase.rpc).mockReturnValue(
-       
-      mockQuery({ data: null, error: { message: "rpc unavailable" } }) as any
-    );
-
-    await expect(createRoom("Sprint Planning")).rejects.toThrow(/Failed to generate room code/);
+    // Clients hold no INSERT privilege on rooms or participants, so leadership
+    // is assigned by the database rather than claimed by the client.
+    expect(supabase.rpc).toHaveBeenCalledWith("create_room", {
+      room_name: "Sprint Planning",
+      scale: "t-shirt",
+      display_name: "Ada",
+    });
+    expect(rpc.methods).toContain("single");
     expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it("throws when the insert reports success but returns no row", async () => {
-     
-    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: "ABC12345" }) as any);
-    queueFrom(mockQuery({ data: null }));
+  it("defaults to the fibonacci scale", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: room }) as never);
 
-    await expect(createRoom("Sprint Planning")).rejects.toThrow(
+    await createRoom("Sprint Planning", "Ada");
+
+    expect(vi.mocked(supabase.rpc).mock.calls[0][1]).toMatchObject({ scale: "fibonacci" });
+  });
+
+  it("wraps a function error in a DatabaseError carrying its code", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQueryError("Room name must be 1 to 100 characters", "22023") as never
+    );
+
+    const error = await createRoom("", "Ada").catch((e) => e);
+
+    expect(error).toBeInstanceOf(DatabaseError);
+    expect(error.message).toMatch(/Failed to create room/);
+    expect(error.code).toBe("22023");
+  });
+
+  it("throws when the function reports success but returns no row", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: null }) as never);
+
+    await expect(createRoom("Sprint Planning", "Ada")).rejects.toThrow(
       /Room created but no data returned/
     );
   });
@@ -188,87 +188,28 @@ describe("updateRoom", () => {
 });
 
 describe("joinRoom", () => {
-  it("makes the first participant in an empty room the leader", async () => {
-    const leader = { ...participant, is_leader: true };
-    const [, count, insert, promote] = queueFrom(
-      mockQuery({ data: null }),
-      mockQuery({ count: 0 }),
-      mockQuery({ data: leader }),
-      mockQuery()
-    );
+  it("joins through the join_room function, which decides leadership", async () => {
+    const rpc = mockQuery({ data: participant });
+    vi.mocked(supabase.rpc).mockReturnValue(rpc as never);
 
-    await expect(joinRoom("room-1", "user-1", "Ada")).resolves.toEqual(leader);
+    await expect(joinRoom("room-1", "Ada")).resolves.toEqual(participant);
 
-    expect(count.argsFor("select")).toEqual(["*", { count: "exact", head: true }]);
-    expect(insert.argsFor("insert")?.[0]).toMatchObject({
-      room_id: "room-1",
-      user_id: "user-1",
-      name: "Ada",
-      is_leader: true,
-      is_active: true,
+    // No user id or is_leader is sent: identity comes from the session and
+    // leadership from the database.
+    expect(supabase.rpc).toHaveBeenCalledWith("join_room", {
+      target_room_id: "room-1",
+      display_name: "Ada",
     });
-    // The room's leader_id is back-filled to point at the new participant.
-    expect(promote.argsFor("update")).toEqual([{ leader_id: "participant-1" }]);
+    expect(rpc.methods).toContain("single");
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it("does not make a later participant the leader", async () => {
-    const [, , insert] = queueFrom(
-      mockQuery({ data: null }),
-      mockQuery({ count: 2 }),
-      mockQuery({ data: participant })
+  it("wraps a function error in a DatabaseError", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(
+      mockQueryError("Room not found", "P0002") as never
     );
 
-    await joinRoom("room-1", "user-2", "Grace");
-
-    expect(insert.argsFor("insert")?.[0]).toMatchObject({ is_leader: false });
-    // Lookup, count and insert — no leader promotion.
-    expect(supabase.from).toHaveBeenCalledTimes(3);
-  });
-
-  it("reactivates and renames an existing record instead of inserting a duplicate", async () => {
-    const existing = { ...participant, user_id: "user-1", is_active: false };
-    const [lookup, update] = queueFrom(
-      mockQuery({ data: existing }),
-      mockQuery({ data: { ...existing, is_active: true, name: "Ada L." } })
-    );
-
-    await expect(joinRoom("room-1", "user-1", "Ada L.")).resolves.toMatchObject({
-      is_active: true,
-      name: "Ada L.",
-    });
-
-    expect(lookup.calls.filter((c) => c.method === "eq")).toEqual([
-      { method: "eq", args: ["room_id", "room-1"] },
-      { method: "eq", args: ["user_id", "user-1"] },
-    ]);
-    expect(update.argsFor("update")?.[0]).toMatchObject({ is_active: true, name: "Ada L." });
-    expect(supabase.from).toHaveBeenCalledTimes(2);
-  });
-
-  it("records the joining user on the new participant row", async () => {
-    const [, , insert] = queueFrom(
-      mockQuery({ data: null }),
-      mockQuery({ count: 1 }),
-      mockQuery({ data: participant })
-    );
-
-    await joinRoom("room-1", "user-3", "Anon");
-
-    // participants_insert checks user_id = auth.uid(), so an unset user_id
-    // would be rejected outright by the database.
-    expect(insert.argsFor("insert")?.[0]).toMatchObject({ user_id: "user-3" });
-  });
-
-  it("wraps an insert failure in a DatabaseError", async () => {
-    queueFrom(
-      mockQuery({ data: null }),
-      mockQuery({ count: 0 }),
-      mockQueryError("insert denied")
-    );
-
-    await expect(joinRoom("room-1", "user-1", "Ada")).rejects.toThrow(
-      /Failed to join room/
-    );
+    await expect(joinRoom("room-1", "Ada")).rejects.toThrow(/Failed to join room/);
   });
 });
 
@@ -518,9 +459,9 @@ describe("unexpected failures", () => {
 
   const cases: Array<[string, () => Promise<unknown>, RegExp]> = [
     ["getRoomByCode", () => getRoomByCode("ABC12345"), /Unexpected error while getting room by code/],
-    ["createRoom", () => createRoom("Sprint"), /Unexpected error while creating room/],
+    ["createRoom", () => createRoom("Sprint", "Ada"), /Unexpected error while creating room/],
     ["updateRoom", () => updateRoom("room-1", { name: "x" }), /Unexpected error while updating room/],
-    ["joinRoom", () => joinRoom("room-1", "user-1", "Ada"), /Unexpected error while joining room/],
+    ["joinRoom", () => joinRoom("room-1", "Ada"), /Unexpected error while joining room/],
     ["getActiveParticipants", () => getActiveParticipants("room-1"), /Unexpected error while getting active participants/],
     ["leaveRoom", () => leaveRoom("participant-1"), /Unexpected error while leaving room/],
     ["createStory", () => createStory("room-1", "Title"), /Unexpected error while creating story/],
@@ -544,19 +485,19 @@ describe("unexpected failures", () => {
 });
 
 describe("missing-row guards", () => {
+  it("joinRoom throws when the function returns no row", async () => {
+    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: null }) as never);
+
+    await expect(joinRoom("room-1", "Ada")).rejects.toThrow(
+      /Participant created but no data returned/
+    );
+  });
+
   it("updateRoom throws when the update returns no row", async () => {
     queueFrom(mockQuery({ data: null }));
 
     await expect(updateRoom("room-1", { name: "x" })).rejects.toThrow(
       /Room updated but no data returned/
-    );
-  });
-
-  it("joinRoom throws when the insert returns no row", async () => {
-    queueFrom(mockQuery({ data: null }), mockQuery({ count: 0 }), mockQuery({ data: null }));
-
-    await expect(joinRoom("room-1", "user-1", "Ada")).rejects.toThrow(
-      /Participant created but no data returned/
     );
   });
 
@@ -597,23 +538,6 @@ describe("missing-row guards", () => {
 
     await expect(setActiveStory("story-1")).rejects.toThrow(
       /Only the room leader can activate stories/
-    );
-  });
-
-  it("createRoom surfaces a plain failure from the code RPC", async () => {
-    vi.mocked(supabase.rpc).mockReturnValue(mockQuery({ data: null }) as never);
-
-    await expect(createRoom("Sprint")).rejects.toThrow(/Failed to generate room code/);
-  });
-
-  it("joinRoom wraps a reactivation failure", async () => {
-    queueFrom(
-      mockQuery({ data: { ...participant, user_id: "user-1" } }),
-      mockQueryError("update denied")
-    );
-
-    await expect(joinRoom("room-1", "user-1", "Ada")).rejects.toThrow(
-      /Failed to reactivate participant/
     );
   });
 

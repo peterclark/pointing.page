@@ -10,7 +10,6 @@ import { mockAuthState } from "@/tests/mock-auth";
 vi.mock("@/hooks/useAuth");
 vi.mock("@/lib/supabase/queries", () => ({
   createRoom: vi.fn(),
-  joinRoom: vi.fn(),
 }));
 
 // Mock localStorage
@@ -72,15 +71,6 @@ describe("CreateRoomDialog", () => {
       created_at: new Date().toISOString(),
     });
 
-    vi.mocked(queries.joinRoom).mockResolvedValue({
-      id: "participant-id",
-      room_id: "room-id",
-      user_id: null,
-      name: "Test User",
-      is_leader: true,
-      is_active: true,
-      joined_at: new Date().toISOString(),
-    });
 
     // Click Fibonacci button (triggers submit)
     const fibonacciButton = screen.getByRole("button", { name: /fibonacci/i });
@@ -121,15 +111,6 @@ describe("CreateRoomDialog", () => {
       created_at: new Date().toISOString(),
     });
 
-    vi.mocked(queries.joinRoom).mockResolvedValue({
-      id: "participant-id",
-      room_id: "room-id",
-      user_id: null,
-      name: "Test User",
-      is_leader: true,
-      is_active: true,
-      joined_at: new Date().toISOString(),
-    });
 
     // Click Fibonacci button
     const fibonacciButton = screen.getByRole("button", { name: /fibonacci/i });

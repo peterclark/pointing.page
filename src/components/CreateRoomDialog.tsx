@@ -17,7 +17,7 @@ import {
   getParticipantName,
   saveParticipantName,
 } from "@/lib/utils";
-import { createRoom, joinRoom } from "@/lib/supabase/queries";
+import { createRoom } from "@/lib/supabase/queries";
 import { useAuth } from "@/hooks/useAuth";
 
 interface CreateRoomDialogProps {
@@ -96,15 +96,16 @@ export function CreateRoomDialog({
     onRoomCreationStart(data.roomName);
 
     try {
-      // Create the room
-      const room = await createRoom(data.roomName, data.pointScale);
+      // Create the room. The database adds the creator as its leader in the
+      // same transaction, keyed to the session identity.
+      const room = await createRoom(
+        data.roomName,
+        data.participantName,
+        data.pointScale
+      );
 
       // Save participant name to localStorage
       saveParticipantName(data.participantName);
-
-      // Join the room as the first participant (becomes leader). The room is
-      // keyed to the session identity, so no participant id is cached locally.
-      await joinRoom(room.id, user.id, data.participantName);
 
       // Notify parent of success with room code
       onRoomCreationSuccess(room.room_code);

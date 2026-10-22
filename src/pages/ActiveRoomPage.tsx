@@ -197,7 +197,7 @@ export function ActiveRoomPage() {
 
     setIsJoining(true);
     try {
-      await joinRoom(room.id, user.id, joinName.trim());
+      await joinRoom(room.id, joinName.trim());
 
       // Remembered only to pre-fill the name field next time.
       saveParticipantName(joinName.trim());
