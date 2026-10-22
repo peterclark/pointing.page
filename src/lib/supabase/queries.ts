@@ -279,6 +279,57 @@ export async function getActiveParticipants(
 }
 
 /**
+ * A room the current user has joined, for the "Rooms" menu
+ */
+export interface RecentRoom {
+  room_code: string;
+  name: string;
+  is_leader: boolean;
+  joined_at: string;
+}
+
+/**
+ * Get the rooms a user has joined, most recently joined first
+ *
+ * @param userId - auth.uid() of the current session
+ * @param limit - Maximum number of rooms to return
+ * @returns Recent rooms; rooms that no longer exist are skipped
+ * @throws DatabaseError if query fails
+ */
+export async function getRecentRooms(
+  userId: string,
+  limit = 5
+): Promise<RecentRoom[]> {
+  try {
+    const { data, error } = await supabase
+      .from('participants')
+      .select('is_leader, joined_at, room:rooms!participants_room_id_fkey(room_code, name)')
+      .eq('user_id', userId)
+      .order('joined_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new DatabaseError(
+        `Failed to get recent rooms: ${error.message}`,
+        error.code,
+        error
+      );
+    }
+
+    return (data || []).flatMap(({ room, is_leader, joined_at }) =>
+      room ? [{ ...room, is_leader, joined_at }] : []
+    );
+  } catch (err) {
+    if (err instanceof DatabaseError) throw err;
+    throw new DatabaseError(
+      'Unexpected error while getting recent rooms',
+      undefined,
+      err
+    );
+  }
+}
+
+/**
  * Leave a room (set is_active to false)
  *
  * If the participant is the leader, the database trigger will automatically

@@ -47,6 +47,11 @@ vi.mock("@/lib/supabase/auth", () => ({ signOut: mocks.signOut }));
 vi.mock("sonner", () => ({
   toast: { info: mocks.toastInfo, success: vi.fn(), error: vi.fn() },
 }));
+vi.mock("@/components/RecentRoomsMenuItems", () => ({
+  RecentRoomsMenuItems: ({ userId }: { userId?: string }) => (
+    <div data-testid="recent-rooms">{userId}</div>
+  ),
+}));
 vi.mock("@/components/current-user-avatar", () => ({
   CurrentUserAvatar: () => <div data-testid="user-avatar">Avatar</div>,
 }));
@@ -310,6 +315,13 @@ describe("AppMenu", () => {
       await click("Support");
 
       expect(mocks.toastInfo).toHaveBeenCalledWith("Support page coming soon!");
+    });
+
+    it("shows the user's recent rooms in the Rooms submenu", async () => {
+      await openMenu(true);
+      await userEvent.click(screen.getByRole("menuitem", { name: "Rooms" }));
+
+      expect(await screen.findByTestId("recent-rooms")).toHaveTextContent("user-1");
     });
 
     it("signs out and returns home", async () => {
