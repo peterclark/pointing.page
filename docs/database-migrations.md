@@ -595,4 +595,4 @@ If you encounter issues not covered here:
 - [Environment Setup Guide](/docs/environment-setup.md) - Setting up dev environments
 - [Database Schema Documentation](/docs/database-schema.md) - Complete schema reference
 - [Database Operations Guide](/docs/database-operations.md) - Using database in application code
-- [RLS Policies Documentation](/docs/rls-policies.md) - Security and access control
+- [Security Model](/docs/security-model.md) - Security and access control

@@ -529,19 +529,9 @@ Test that subscriptions reconnect after network interruptions:
 
 ### Automated Testing
 
-Use the provided test page at `/test-realtime.html` to run automated tests:
-
-```bash
-# Open the test page
-open test-realtime.html
-```
-
-The test page will:
-- Connect to Supabase
-- Subscribe to all channels
-- Simulate database changes
-- Verify events are received
-- Display test results
+`src/hooks/useRoomSubscription.test.ts` covers the hook with a stubbed client.
+Realtime applies the same RLS policies as REST, so the SQL suites in
+`supabase/tests/` also describe what each subscriber can receive.
 
 ---
 
@@ -767,14 +757,12 @@ supabase.channel('votes').on(
 ## Next Steps
 
 1. **Enable replication** for all tables in Supabase Dashboard
-2. **Review the example code** in `/src/lib/supabase/subscriptions.example.ts`
-3. **Test subscriptions** using the test page at `/test-realtime.html`
+2. **Review the hook** in `/src/hooks/useRoomSubscription.ts`
+3. **Test subscriptions** by opening one room in two browsers
 4. **Integrate subscriptions** into your React components using custom hooks
 
 For TypeScript examples and React hooks, see:
-- Example subscription patterns: `/src/lib/supabase/subscriptions.example.ts`
-- React hooks: `/src/hooks/useRealtimeSubscription.ts` (Phase 6)
-- Test page: `/test-realtime.html`
+- React hook: `/src/hooks/useRoomSubscription.ts`
 
 For more information on Supabase Real-time:
 - [Supabase Real-time Documentation](https://supabase.com/docs/guides/realtime)

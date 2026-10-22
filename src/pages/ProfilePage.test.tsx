@@ -23,7 +23,6 @@ vi.mock("@/lib/utils", async () => {
   return {
     ...actual,
     getParticipantName: vi.fn(),
-    getParticipantId: vi.fn(),
     saveParticipantName: vi.fn(),
   };
 });
