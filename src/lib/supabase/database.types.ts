@@ -224,7 +224,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_room: {
+        Args: {
+          room_name: string
+          scale: Database["public"]["Enums"]["point_scale_enum"]
+          display_name: string
+        }
+        Returns: Database["public"]["Tables"]["rooms"]["Row"]
+      }
       generate_room_code: { Args: never; Returns: string }
+      join_room: {
+        Args: { target_room_id: string; display_name: string }
+        Returns: Database["public"]["Tables"]["participants"]["Row"]
+      }
       promote_new_leader: {
         Args: { room_id_param: string }
         Returns: undefined
