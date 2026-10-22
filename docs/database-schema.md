@@ -634,7 +634,7 @@ const { data } = await supabase.from('rooms').insert({ name, point_scale });
 
 ## Row Level Security Policies
 
-All tables have RLS enabled. See [RLS Policies Documentation](/docs/rls-policies.md) for complete details.
+All tables have RLS enabled. See [Security Model](/docs/security-model.md) for complete details.
 
 ### Policy Summary
 
@@ -692,5 +692,5 @@ Potential future enhancements (not yet implemented):
 
 - [Database Migrations Guide](/docs/database-migrations.md) - How to modify schema
 - [Database Operations Guide](/docs/database-operations.md) - Using schema in application
-- [RLS Policies Documentation](/docs/rls-policies.md) - Access control details
+- [Security Model](/docs/security-model.md) - Access control details
 - [Environment Setup Guide](/docs/environment-setup.md) - Setting up database locally

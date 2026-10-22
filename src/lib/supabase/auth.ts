@@ -1,5 +1,6 @@
 import { supabase } from "./client";
 import { toast } from "sonner";
+import { getCaptchaToken } from "@/lib/captcha";
 import type { Session } from "@supabase/supabase-js";
 
 /**
@@ -29,7 +30,18 @@ export async function ensureSession(): Promise<Session | null> {
 
   if (session) return session;
 
-  const { data, error } = await supabase.auth.signInAnonymously();
+  let captchaToken: string | undefined;
+  try {
+    captchaToken = await getCaptchaToken();
+  } catch (err) {
+    // Sign-in is attempted anyway: if CAPTCHA protection is on it will be
+    // refused and the app degrades to read-only, same as any sign-in failure.
+    console.error("[ensureSession] CAPTCHA failed:", err);
+  }
+
+  const { data, error } = await supabase.auth.signInAnonymously(
+    captchaToken ? { options: { captchaToken } } : undefined
+  );
 
   if (error) {
     // Leaves the app usable read-only rather than blank: policies fail closed,

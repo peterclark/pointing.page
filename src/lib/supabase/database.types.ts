@@ -110,6 +110,7 @@ export type Database = {
           final_average: number | null
           id: string
           is_active: boolean
+          revealed_at: string | null
           room_id: string
           title: string
         }
@@ -119,6 +120,7 @@ export type Database = {
           final_average?: number | null
           id?: string
           is_active?: boolean
+          revealed_at?: string | null
           room_id: string
           title: string
         }
@@ -128,6 +130,7 @@ export type Database = {
           final_average?: number | null
           id?: string
           is_active?: boolean
+          revealed_at?: string | null
           room_id?: string
           title?: string
         }
@@ -224,10 +227,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_room: {
+        Args: {
+          room_name: string
+          scale: Database["public"]["Enums"]["point_scale_enum"]
+          display_name: string
+        }
+        Returns: Database["public"]["Tables"]["rooms"]["Row"]
+      }
       generate_room_code: { Args: never; Returns: string }
+      get_room_by_code: {
+        Args: { code: string }
+        Returns: Database["public"]["Tables"]["rooms"]["Row"][]
+      }
+      join_room: {
+        Args: { target_room_id: string; display_name: string }
+        Returns: Database["public"]["Tables"]["participants"]["Row"]
+      }
       promote_new_leader: {
         Args: { room_id_param: string }
         Returns: undefined
+      }
+      is_room_member: {
+        Args: { target_room_id: string }
+        Returns: boolean
+      }
+      is_story_member: {
+        Args: { target_story_id: string }
+        Returns: boolean
       }
       is_room_leader: {
         Args: { target_room_id: string }
@@ -237,9 +264,17 @@ export type Database = {
         Args: { target_participant_id: string }
         Returns: boolean
       }
+      revote_story: {
+        Args: { target_story_id: string }
+        Returns: Database["public"]["Tables"]["stories"]["Row"][]
+      }
       reveal_votes: {
         Args: { target_story_id: string }
         Returns: undefined
+      }
+      set_active_story: {
+        Args: { target_story_id: string }
+        Returns: Database["public"]["Tables"]["stories"]["Row"][]
       }
     }
     Enums: {
