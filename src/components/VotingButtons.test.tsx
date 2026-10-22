@@ -62,6 +62,9 @@ describe("VotingButtons", () => {
     // The selected button should have ring styling (we can check via className or variant)
     expect(button5).toHaveClass("ring-2");
     expect(button8).not.toHaveClass("ring-2");
+    // Selection is announced, not just drawn.
+    expect(button5).toHaveAttribute("aria-pressed", "true");
+    expect(button8).toHaveAttribute("aria-pressed", "false");
   });
 
   it("submits vote when button is clicked", async () => {

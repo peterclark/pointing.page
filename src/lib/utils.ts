@@ -239,6 +239,20 @@ export function formatRoomCode(code: string): string {
 }
 
 /**
+ * True when the visitor has asked the OS to minimise motion.
+ *
+ * Decorative animation (the landing waves, the results sparkles) is skipped
+ * for them. Defaults to false where matchMedia is unavailable.
+ */
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/**
  * Retrieves the saved participant name from localStorage
  * Returns null if no name is saved
  */

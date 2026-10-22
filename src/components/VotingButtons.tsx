@@ -62,7 +62,11 @@ export function VotingButtons({
   };
 
   return (
-    <div className="flex justify-around gap-2 flex-wrap">
+    <div
+      role="group"
+      aria-label="Your estimate"
+      className="flex justify-around gap-2 flex-wrap"
+    >
       {pointValues.map((value) => {
         const isSelected = displayedVote === value;
         const isDisabled = isRevealed || isSubmitting;
@@ -74,6 +78,7 @@ export function VotingButtons({
             size="lg"
             variant={isSelected ? "default" : "outline"}
             disabled={isDisabled}
+            aria-pressed={isSelected}
             onClick={() => handleVoteClick(value)}
             className={`flex-1 aspect-square text-xl font-bold ${
               isSelected ? "ring-2 ring-primary" : ""

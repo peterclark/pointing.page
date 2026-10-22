@@ -207,6 +207,31 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       });
     });
 
+    it("names the leader in the waiting message", async () => {
+      vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
+        stories: [],
+        votes: [],
+        votedParticipantIds: new Set<string>(),
+        participants: [
+          createMockParticipant({ is_leader: false }),
+          createMockParticipant({
+            id: "participant-lead",
+            user_id: "user-lead",
+            name: "Grace",
+            is_leader: true,
+          }),
+        ],
+        isLoading: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(
+        await screen.findByText(/waiting for grace to start voting/i)
+      ).toBeInTheDocument();
+    });
+
     it("should show waiting message when non-leader and no active story", async () => {
       const mockParticipant = createMockParticipant({ is_leader: false });
       vi.mocked(useRoomSubscriptionModule.useRoomSubscription).mockReturnValue({
@@ -221,7 +246,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText(/waiting for leader to start voting/i)).toBeInTheDocument();
+        expect(screen.getByText(/waiting for the leader to start voting/i)).toBeInTheDocument();
         expect(
           screen.getByText(/the leader will create a story/i)
         ).toBeInTheDocument();

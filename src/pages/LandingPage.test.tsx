@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { LandingPage } from "./LandingPage";
 import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
 
@@ -53,6 +53,30 @@ function renderLandingPage() {
 }
 
 describe("LandingPage", () => {
+  it("joins a room by code, accepting the dashed display format", () => {
+    render(
+      <CommandPaletteProvider>
+        <MemoryRouter initialEntries={["/"]}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/join/:roomCode" element={<p>joining</p>} />
+          </Routes>
+        </MemoryRouter>
+      </CommandPaletteProvider>
+    );
+
+    const join = screen.getByRole("button", { name: /^join$/i });
+    const input = screen.getByLabelText(/room code/i);
+
+    fireEvent.change(input, { target: { value: "abc" } });
+    expect(join).toBeDisabled();
+
+    fireEvent.change(input, { target: { value: "abcd-1234" } });
+    fireEvent.click(join);
+
+    expect(screen.getByText("joining")).toBeInTheDocument();
+  });
+
   it("renders enter button", () => {
     renderLandingPage();
     expect(
