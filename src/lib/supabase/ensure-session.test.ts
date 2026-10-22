@@ -8,6 +8,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ensureSession } from "./auth";
 import { supabase } from "./client";
+import { getCaptchaToken } from "@/lib/captcha";
+
+vi.mock("@/lib/captcha", () => ({ getCaptchaToken: vi.fn() }));
 
 vi.mock("./client", () => ({
   supabase: {
@@ -65,5 +68,38 @@ describe("ensureSession", () => {
 
     // The caller renders a degraded, read-only app; it does not crash.
     await expect(ensureSession()).resolves.toBeNull();
+  });
+
+  it("passes a CAPTCHA token to anonymous sign-in when one is configured", async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    } as never);
+    vi.mocked(getCaptchaToken).mockResolvedValue("turnstile-token");
+    vi.mocked(supabase.auth.signInAnonymously).mockResolvedValue({
+      data: { session },
+      error: null,
+    } as never);
+
+    await ensureSession();
+
+    expect(supabase.auth.signInAnonymously).toHaveBeenCalledWith({
+      options: { captchaToken: "turnstile-token" },
+    });
+  });
+
+  it("still attempts sign-in when the CAPTCHA fails", async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    } as never);
+    vi.mocked(getCaptchaToken).mockRejectedValue(new Error("blocked"));
+    vi.mocked(supabase.auth.signInAnonymously).mockResolvedValue({
+      data: { session },
+      error: null,
+    } as never);
+
+    await expect(ensureSession()).resolves.toEqual(session);
+    expect(supabase.auth.signInAnonymously).toHaveBeenCalledWith(undefined);
   });
 });
