@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { CreateRoomDialog } from "@/components/CreateRoomDialog";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
@@ -26,6 +27,11 @@ export function LandingPage() {
   const [preservedRoomName, setPreservedRoomName] = useState<string | null>(
     null
   );
+
+  const [joinCode, setJoinCode] = useState("");
+  // Accepts the code as displayed (ABCD-1234) or typed (abcd1234).
+  const normalizedJoinCode = joinCode.replace(/[^a-z0-9]/gi, "").toUpperCase();
+  const isJoinCodeValid = /^[A-Z0-9]{8}$/.test(normalizedJoinCode);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -82,6 +88,11 @@ export function LandingPage() {
   );
 
   // Reset error when dialog opens
+  const handleJoinByCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isJoinCodeValid) navigate(`/join/${normalizedJoinCode}`);
+  };
+
   const handleDialogOpenChange = useCallback(
     (open: boolean) => {
       setIsCreateRoomDialogOpen(open);
@@ -100,17 +111,42 @@ export function LandingPage() {
   return (
     <div className="bg-black">
       {!isCreateRoomDialogOpen && (
-        <WavyBackground className="mx-auto flex flex-col">
+        <WavyBackground className="mx-auto flex w-full flex-col items-center px-4">
           <Header />
           <TypewriterEffectSmooth words={tagline} />
           <Button
             size="lg"
             variant="outline"
             onClick={() => setIsCreateRoomDialogOpen(true)}
-            className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 min-w-[400px] self-center rounded-full border-2"
+            className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 w-full max-w-[400px] self-center rounded-full border-2"
           >
             Enter
           </Button>
+          <form
+            onSubmit={handleJoinByCode}
+            className="mt-6 flex w-full max-w-[400px] gap-2 self-center"
+            aria-label="Join a room with a code"
+          >
+            <Input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              placeholder="Have a code? ABCD-1234"
+              aria-label="Room code"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={9}
+              className="h-11 rounded-full border-white/30 bg-transparent text-center font-mono tracking-wider text-white placeholder:text-white/40"
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={!isJoinCodeValid}
+              className="h-11 rounded-full border-white/50 bg-transparent text-white/75 hover:bg-white/10 hover:text-white"
+            >
+              Join
+            </Button>
+          </form>
         </WavyBackground>
       )}
 

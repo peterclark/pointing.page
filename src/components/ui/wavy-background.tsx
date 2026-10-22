@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { cn } from "@/lib/utils";
+import { cn, prefersReducedMotion } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { createNoise3D } from "simplex-noise";
 
@@ -89,7 +89,10 @@ export const WavyBackground = ({
     ctx.globalAlpha = waveOpacity || 0.5;
     ctx.fillRect(0, 0, w, h);
     drawWave(5);
-    animationId = requestAnimationFrame(render);
+    // A single still frame for visitors who asked for reduced motion.
+    if (!prefersReducedMotion()) {
+      animationId = requestAnimationFrame(render);
+    }
   };
 
   useEffect(() => {

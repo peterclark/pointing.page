@@ -239,20 +239,17 @@ export function formatRoomCode(code: string): string {
 }
 
 /**
- * Gets or generates a participant ID from localStorage
- * Generates a new UUID v4 if one doesn't exist
+ * True when the visitor has asked the OS to minimise motion.
+ *
+ * Decorative animation (the landing waves, the results sparkles) is skipped
+ * for them. Defaults to false where matchMedia is unavailable.
  */
-export function getParticipantId(): string {
-  const key = "participant_id";
-  const existingId = localStorage.getItem(key);
-
-  if (existingId) {
-    return existingId;
-  }
-
-  const newId = crypto.randomUUID();
-  localStorage.setItem(key, newId);
-  return newId;
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
 /**

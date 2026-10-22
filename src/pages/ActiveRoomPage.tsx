@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
+import {
+  ClipboardDocumentIcon,
+  ShareIcon,
+} from "@heroicons/react/24/outline";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +107,7 @@ export function ActiveRoomPage() {
     isLoading: isLoadingSubscription,
     error: subscriptionError,
     isReconnecting,
+    refetch,
   } = useRoomSubscription(room?.id || "");
 
   // State for joining the room
@@ -158,18 +162,20 @@ export function ActiveRoomPage() {
   // Determine leader status
   const isLeader = currentParticipant?.is_leader ?? false;
 
+  const leaderName = useMemo(
+    () => participants.find((p) => p.is_leader && p.is_active)?.name ?? null,
+    [participants]
+  );
+
   // Find active story
   const activeStory = useMemo(
     () => stories.find((s) => s.is_active) || null,
     [stories]
   );
 
-  // Check if active story votes are revealed
-  // We check if any vote for the active story has is_revealed=true
-  const isRevealed = useMemo(() => {
-    if (!activeStory) return false;
-    return votes.some((v) => v.story_id === activeStory.id && v.is_revealed);
-  }, [activeStory, votes]);
+  // Reveal state lives on the story, so a story nobody voted on can still be
+  // revealed and moved past.
+  const isRevealed = Boolean(activeStory?.revealed_at);
 
   // Filter votes for privacy (participants only see their own unrevealed votes)
   const visibleVotes = useMemo(
@@ -197,7 +203,11 @@ export function ActiveRoomPage() {
 
     setIsJoining(true);
     try {
-      await joinRoom(room.id, user.id, joinName.trim());
+      await joinRoom(room.id, joinName.trim());
+
+      // Room data is readable only by members, so the board loaded before
+      // joining came back empty. Load it again now that we are in.
+      refetch();
 
       // Remembered only to pre-fill the name field next time.
       saveParticipantName(joinName.trim());
@@ -213,6 +223,25 @@ export function ActiveRoomPage() {
   };
 
   // Handle copy room code
+  // The native share sheet is the natural way to send a link on phones.
+  const canShare = typeof navigator !== "undefined" && "share" in navigator;
+
+  const handleShare = async () => {
+    if (!roomCode || !room) return;
+    try {
+      await navigator.share({
+        title: `${room.name} · Pointing.page`,
+        text: `Join "${room.name}" to point stories together`,
+        url: `${window.location.origin}/join/${roomCode}`,
+      });
+    } catch (err) {
+      // Dismissing the sheet rejects with AbortError; that is not a failure.
+      if ((err as Error)?.name !== "AbortError") {
+        toast.error("Couldn't open sharing. Use Copy Link instead.");
+      }
+    }
+  };
+
   const handleCopyRoomCode = async () => {
     if (!roomCode) return;
 
@@ -358,6 +387,17 @@ export function ActiveRoomPage() {
                 </p>
               </div>
               <div className="flex gap-4 items-center">
+                {canShare && (
+                  <Button
+                    onClick={handleShare}
+                    variant="outline"
+                    size="lg"
+                    className="gap-2"
+                  >
+                    <ShareIcon className="h-5 w-5" />
+                    Share
+                  </Button>
+                )}
                 <Button
                   onClick={handleCopyRoomCode}
                   variant="outline"
@@ -372,6 +412,15 @@ export function ActiveRoomPage() {
           </div>
         </Card>
 
+        {/* Screen-reader announcement of the round's state */}
+        <p className="sr-only" aria-live="polite">
+          {activeStory
+            ? isRevealed
+              ? `Votes revealed for ${activeStory.title}`
+              : `Voting open for ${activeStory.title}`
+            : ""}
+        </p>
+
         {/* Voting Flow - Conditional Rendering Based on State */}
         <div className="space-y-6">
           {/* State 1: No Active Story */}
@@ -385,7 +434,7 @@ export function ActiveRoomPage() {
                 <Card className="p-8">
                   <div className="text-center text-muted-foreground space-y-2">
                     <p className="text-lg font-medium">
-                      Waiting for leader to start voting
+                      Waiting for {leaderName ?? "the leader"} to start voting
                     </p>
                     <p className="text-sm">
                       The leader will create a story for the team to estimate
@@ -417,6 +466,13 @@ export function ActiveRoomPage() {
                   <div className="pt-2">
                     <p className="text-sm text-muted-foreground mb-3">
                       Participants ({participants.length})
+                      {!isRevealed && (
+                        <span>
+                          {" "}
+                          · {votedParticipantIds.size} of {participants.length}{" "}
+                          voted
+                        </span>
+                      )}
                     </p>
                     <ParticipantStatus
                       participants={participants}
