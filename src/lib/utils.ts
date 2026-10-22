@@ -253,23 +253,6 @@ export function prefersReducedMotion(): boolean {
 }
 
 /**
- * Gets or generates a participant ID from localStorage
- * Generates a new UUID v4 if one doesn't exist
- */
-export function getParticipantId(): string {
-  const key = "participant_id";
-  const existingId = localStorage.getItem(key);
-
-  if (existingId) {
-    return existingId;
-  }
-
-  const newId = crypto.randomUUID();
-  localStorage.setItem(key, newId);
-  return newId;
-}
-
-/**
  * Retrieves the saved participant name from localStorage
  * Returns null if no name is saved
  */

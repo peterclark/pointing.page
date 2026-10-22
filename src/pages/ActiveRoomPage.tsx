@@ -107,6 +107,7 @@ export function ActiveRoomPage() {
     isLoading: isLoadingSubscription,
     error: subscriptionError,
     isReconnecting,
+    refetch,
   } = useRoomSubscription(room?.id || "");
 
   // State for joining the room
@@ -172,12 +173,9 @@ export function ActiveRoomPage() {
     [stories]
   );
 
-  // Check if active story votes are revealed
-  // We check if any vote for the active story has is_revealed=true
-  const isRevealed = useMemo(() => {
-    if (!activeStory) return false;
-    return votes.some((v) => v.story_id === activeStory.id && v.is_revealed);
-  }, [activeStory, votes]);
+  // Reveal state lives on the story, so a story nobody voted on can still be
+  // revealed and moved past.
+  const isRevealed = Boolean(activeStory?.revealed_at);
 
   // Filter votes for privacy (participants only see their own unrevealed votes)
   const visibleVotes = useMemo(
@@ -205,7 +203,11 @@ export function ActiveRoomPage() {
 
     setIsJoining(true);
     try {
-      await joinRoom(room.id, user.id, joinName.trim());
+      await joinRoom(room.id, joinName.trim());
+
+      // Room data is readable only by members, so the board loaded before
+      // joining came back empty. Load it again now that we are in.
+      refetch();
 
       // Remembered only to pre-fill the name field next time.
       saveParticipantName(joinName.trim());

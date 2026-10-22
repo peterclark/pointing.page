@@ -143,21 +143,13 @@ describe("Room Creation Flow Integration", () => {
     await waitFor(() => {
       expect(queries.createRoom).toHaveBeenCalledWith(
         expect.stringMatching(/^[A-Z][a-z]+-[A-Z][a-z]+$/),
+        "Test User",
         "fibonacci"
-      );
-      expect(queries.joinRoom).toHaveBeenCalledWith(
-        "room-uuid",
-        null,
-        "Test User"
       );
     });
 
     // Verify localStorage was updated with participant name
     expect(localStorage.getItem("participant_name")).toBe("Test User");
-
-    // Verify participant_id was generated
-    const participantId = localStorage.getItem("participant_id");
-    expect(participantId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
   });
 
   it("validates room code format before attempting to join", async () => {
@@ -312,22 +304,6 @@ describe("localStorage Persistence", () => {
     vi.clearAllMocks();
     localStorage.clear();
     vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
-  });
-
-  it("generates participant_id once and persists across calls", () => {
-    // First call generates ID
-    const id1 = utils.getParticipantId();
-    expect(id1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-    expect(localStorage.getItem("participant_id")).toBe(id1);
-
-    // Second call returns same ID
-    const id2 = utils.getParticipantId();
-    expect(id2).toBe(id1);
-    expect(localStorage.getItem("participant_id")).toBe(id1);
-
-    // Verify only one entry in localStorage for participant_id
-    const keys = Object.keys(localStorage);
-    expect(keys.filter(k => k === "participant_id")).toHaveLength(1);
   });
 
   it("pre-fills participant name from localStorage in create room dialog", async () => {
