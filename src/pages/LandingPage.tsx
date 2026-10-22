@@ -126,13 +126,13 @@ export function LandingPage() {
               size="lg"
               variant="outline"
               onClick={() => setIsCreateRoomDialogOpen(true)}
-              className="h-15 text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-50 w-full max-w-[400px] self-center rounded-full border-2"
+              className="h-14 text-xl sm:h-15 sm:text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-[max(9rem,26dvh)] sm:mt-50 w-full max-w-[400px] self-center rounded-full border-2"
             >
               Enter
             </Button>
             <form
               onSubmit={handleJoinByCode}
-              className="mt-6 flex w-full max-w-[400px] gap-2 self-center"
+              className="mt-4 flex w-full max-w-[400px] gap-2 self-center"
               aria-label="Join a room with a code"
             >
               <Input
@@ -144,13 +144,13 @@ export function LandingPage() {
                 autoCapitalize="characters"
                 spellCheck={false}
                 maxLength={9}
-                className="h-11 rounded-full border-white/30 bg-transparent text-center font-mono tracking-wider text-white placeholder:text-white/40"
+                className="h-12 rounded-full border-white/30 bg-transparent text-center font-mono tracking-wider text-white placeholder:font-sans placeholder:tracking-normal placeholder:text-white/40"
               />
               <Button
                 type="submit"
                 variant="outline"
                 disabled={!isJoinCodeValid}
-                className="h-11 rounded-full border-white/50 bg-transparent text-white/75 hover:bg-white/10 hover:text-white"
+                className="h-12 rounded-full border-white/50 bg-transparent px-5 text-white/75 hover:bg-white/10 hover:text-white"
               >
                 Join
               </Button>
