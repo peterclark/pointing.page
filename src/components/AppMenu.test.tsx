@@ -285,6 +285,13 @@ describe("AppMenu", () => {
       expect(mocks.navigate).toHaveBeenCalledWith("/profile");
     });
 
+    it("navigates to settings", async () => {
+      const click = await openMenu();
+      await click(/^Settings/);
+
+      expect(mocks.navigate).toHaveBeenCalledWith("/settings");
+    });
+
     it("opens the create-room dialog", async () => {
       const click = await openMenu();
       await click(/^New Room/);
@@ -381,6 +388,7 @@ describe("AppMenu", () => {
     it.each([
       ["h", "/"],
       ["p", "/profile"],
+      ["s", "/settings"],
     ])("⌘K %s navigates to %s", (key, path) => {
       registeredCommands().get(key)!();
 
@@ -409,7 +417,7 @@ describe("AppMenu", () => {
       expect(mocks.showHelp).toHaveBeenCalled();
     });
 
-    it.each(["b", "s"])("⌘K %s reports an unbuilt page", (key) => {
+    it.each(["b"])("⌘K %s reports an unbuilt page", (key) => {
       registeredCommands().get(key)!();
 
       expect(mocks.toastInfo).toHaveBeenCalledWith(
