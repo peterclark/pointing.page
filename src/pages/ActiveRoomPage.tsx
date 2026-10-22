@@ -104,6 +104,7 @@ export function ActiveRoomPage() {
     isLoading: isLoadingSubscription,
     error: subscriptionError,
     isReconnecting,
+    refetch,
   } = useRoomSubscription(room?.id || "");
 
   // State for joining the room
@@ -198,6 +199,10 @@ export function ActiveRoomPage() {
     setIsJoining(true);
     try {
       await joinRoom(room.id, joinName.trim());
+
+      // Room data is readable only by members, so the board loaded before
+      // joining came back empty. Load it again now that we are in.
+      refetch();
 
       // Remembered only to pre-fill the name field next time.
       saveParticipantName(joinName.trim());
