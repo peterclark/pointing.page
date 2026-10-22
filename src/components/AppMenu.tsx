@@ -84,12 +84,6 @@ export function AppMenu() {
         category: "navigation",
       }),
       registerCommand({
-        key: "b",
-        description: "Billing",
-        action: () => toast.info("Billing page coming soon!"),
-        category: "navigation",
-      }),
-      registerCommand({
         key: "s",
         description: "Settings",
         action: () => navigate("/settings"),

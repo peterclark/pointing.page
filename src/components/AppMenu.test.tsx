@@ -385,7 +385,7 @@ describe("AppMenu", () => {
       const commands = registeredCommands();
 
       expect([...commands.keys()].sort()).toEqual(
-        ["?", "b", "d", "h", "l", "p", "q", "r", "s", "t"].sort()
+        ["?", "d", "h", "l", "p", "q", "r", "s", "t"].sort()
       );
     });
 
@@ -421,13 +421,6 @@ describe("AppMenu", () => {
       expect(mocks.showHelp).toHaveBeenCalled();
     });
 
-    it.each(["b"])("⌘K %s reports an unbuilt page", (key) => {
-      registeredCommands().get(key)!();
-
-      expect(mocks.toastInfo).toHaveBeenCalledWith(
-        expect.stringContaining("coming soon")
-      );
-    });
 
     it("unregisters its commands on unmount", () => {
       const cleanup = vi.fn();
