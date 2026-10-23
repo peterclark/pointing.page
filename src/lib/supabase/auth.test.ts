@@ -6,7 +6,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { signOut, getCurrentUser, isAuthenticated } from "./auth";
+import {
+  signOut,
+  getCurrentUser,
+  isAuthenticated,
+  rememberOAuthProvider,
+  resumeSignInAfterLinkConflict,
+} from "./auth";
 import { supabase } from "./client";
 import { toast } from "sonner";
 
@@ -15,6 +21,7 @@ vi.mock("./client", () => ({
     auth: {
       signOut: vi.fn(),
       getUser: vi.fn(),
+      signInWithOAuth: vi.fn(),
     },
   },
 }));
@@ -87,5 +94,44 @@ describe("isAuthenticated", () => {
     } as any);
 
     await expect(isAuthenticated()).resolves.toBe(false);
+  });
+});
+
+describe("resumeSignInAfterLinkConflict", () => {
+  const conflict =
+    "/#error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user";
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    window.history.replaceState(null, "", "/");
+    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ error: null } as never);
+  });
+
+  it("signs a returning user in to the account that owns the provider", async () => {
+    rememberOAuthProvider("google");
+    window.history.replaceState(null, "", conflict);
+
+    await expect(resumeSignInAfterLinkConflict()).resolves.toBe(true);
+
+    expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/` },
+    });
+    expect(window.location.hash).toBe("");
+    expect(sessionStorage.getItem("pending_oauth_provider")).toBeNull();
+  });
+
+  it("does nothing on an ordinary page load", async () => {
+    rememberOAuthProvider("github");
+
+    await expect(resumeSignInAfterLinkConflict()).resolves.toBe(false);
+    expect(supabase.auth.signInWithOAuth).not.toHaveBeenCalled();
+  });
+
+  it("leaves the guest alone when it doesn't know which provider was used", async () => {
+    window.history.replaceState(null, "", conflict);
+
+    await expect(resumeSignInAfterLinkConflict()).resolves.toBe(false);
+    expect(supabase.auth.signInWithOAuth).not.toHaveBeenCalled();
   });
 });
