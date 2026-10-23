@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ensureSession } from "@/lib/supabase/auth";
+import { ensureSession, resumeSignInAfterLinkConflict } from "@/lib/supabase/auth";
 
 interface SessionGateProps {
   children: React.ReactNode;
@@ -28,7 +28,11 @@ export function SessionGate({ children }: SessionGateProps) {
   useEffect(() => {
     let cancelled = false;
 
-    ensureSession()
+    // A returning user's sign-in comes back here as a link conflict; when that
+    // redirects to the provider, keep the gate closed until the page unloads.
+    resumeSignInAfterLinkConflict()
+      .catch(() => false)
+      .then((redirecting) => (redirecting ? new Promise<never>(() => {}) : ensureSession()))
       .catch((err) => {
         // ensureSession handles its own errors, so this only fires if it throws
         // outright. Swallow it here rather than surfacing an unhandled

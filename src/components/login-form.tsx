@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
+import { rememberOAuthProvider, type OAuthProvider } from "@/lib/supabase/auth";
 import { Button } from "@/components/ui/button";
 import { Github } from "lucide-react";
 import { useState } from "react";
@@ -12,7 +13,7 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSocialLogin = async (provider: "google" | "github") => {
+  const handleSocialLogin = async (provider: OAuthProvider) => {
     setIsLoading(true);
     setError(null);
 
@@ -28,7 +29,9 @@ export function LoginForm({
       // user and strand them. linkIdentity attaches the provider to the
       // identity they already have, so the uid — and every room they joined —
       // survives. Requires Manual Linking enabled in the Supabase dashboard;
-      // see OAUTH_SETUP.md.
+      // see OAUTH_SETUP.md. A provider that already has an account can't be
+      // linked; resumeSignInAfterLinkConflict() signs in to it on the way back.
+      if (user?.is_anonymous) rememberOAuthProvider(provider);
       const { error } = user?.is_anonymous
         ? await supabase.auth.linkIdentity({ provider, options })
         : await supabase.auth.signInWithOAuth({ provider, options });
