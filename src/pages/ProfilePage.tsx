@@ -28,8 +28,10 @@ import {
   updateProfile,
 } from "@/lib/supabase/queries";
 import { useAuth } from "@/hooks/useAuth";
-import { useCardTable } from "@/hooks/useCardTable";
+import { TablePage } from "@/components/TablePage";
+import { feltField, ivoryButton } from "@/lib/cards";
 import {
+  cn,
   getParticipantName,
   saveParticipantName,
 } from "@/lib/utils";
@@ -39,7 +41,6 @@ import { toast } from "sonner";
  * Profile page with conditional rendering based on auth state
  */
 export function ProfilePage() {
-  useCardTable();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -115,22 +116,6 @@ export function ProfilePage() {
   );
 }
 
-/**
- * The felt page with the wordmark on top, shared by every state of this page
- */
-function TablePage({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-dvh flex-col px-6 pt-4 pb-10">
-      <p className="font-display flex h-11 items-center justify-center text-2xl">
-        Pointing<span className="text-suit">.</span>page
-      </p>
-      <main className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center gap-8">
-        {children}
-      </main>
-    </div>
-  );
-}
-
 function StatusMessage({ children }: { children: React.ReactNode }) {
   return (
     <TablePage>
@@ -138,10 +123,6 @@ function StatusMessage({ children }: { children: React.ReactNode }) {
     </TablePage>
   );
 }
-
-// Matches the room code input on the landing page
-const feltInput =
-  "h-13 rounded-2xl border-2 border-ivory/30 bg-felt-deep/40 px-4 text-base text-ivory placeholder:text-ivory/50";
 
 /**
  * Social authentication view for unauthenticated users
@@ -270,7 +251,7 @@ function AuthenticatedView({
             {...register("name")}
             disabled={isSubmitting}
             placeholder="Enter your name"
-            className={feltInput}
+            className={cn("h-13", feltField)}
           />
           {errors.name && (
             <p className="text-sm text-gold">{errors.name.message}</p>
@@ -285,7 +266,7 @@ function AuthenticatedView({
             type="email"
             value={user.email || ""}
             disabled
-            className={feltInput}
+            className={cn("h-13", feltField)}
           />
           <p className="text-xs text-ivory/60">
             Email cannot be changed after verification
@@ -297,7 +278,7 @@ function AuthenticatedView({
           type="submit"
           size="lg"
           disabled={isSubmitting}
-          className="h-14 w-full rounded-2xl bg-ivory text-lg font-extrabold text-ink hover:bg-ivory/90"
+          className={cn("w-full", ivoryButton)}
         >
           {isSubmitting ? "Saving..." : "Save Changes"}
         </Button>

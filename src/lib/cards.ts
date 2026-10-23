@@ -21,3 +21,11 @@ export function fanStyle(
     zIndex: index,
   } as CSSProperties;
 }
+
+/** Classes for a text field on the felt, matching the landing page's code input */
+export const feltField =
+  "rounded-2xl border-2 border-ivory/30 bg-felt-deep/40 px-4 text-base text-ivory placeholder:text-ivory/50";
+
+/** Classes for the main ivory call-to-action button */
+export const ivoryButton =
+  "h-14 rounded-2xl bg-ivory text-lg font-extrabold text-ink hover:bg-ivory/90";
