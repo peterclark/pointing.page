@@ -4,6 +4,7 @@ import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import { JoinRoomHandler } from "./pages/JoinRoomHandler";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { AdminPage } from "./pages/AdminPage";
 import { RootLayout } from "./components/RootLayout";
 
 /**
@@ -14,6 +15,7 @@ import { RootLayout } from "./components/RootLayout";
  * - /join/:roomCode : Join flow handler (validates and redirects)
  * - /profile : Profile/account page
  * - /settings : Theme and default name
+ * - /admin : Usage metrics (admins only)
  */
 export const router = createBrowserRouter([
   {
@@ -38,6 +40,10 @@ export const router = createBrowserRouter([
       {
         path: "/settings",
         element: <SettingsPage />,
+      },
+      {
+        path: "/admin",
+        element: <AdminPage />,
       },
     ],
   },

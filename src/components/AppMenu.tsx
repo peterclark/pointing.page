@@ -17,6 +17,7 @@ import { DoorClosed, MenuIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { CurrentUserAvatar } from "@/components/current-user-avatar";
 import { RecentRoomsMenuItems } from "@/components/RecentRoomsMenuItems";
 import { signOut } from "@/lib/supabase/auth";
@@ -27,6 +28,7 @@ const SUPPORT_URL = "https://github.com/peterclark/pointing.page/issues/new";
 export function AppMenu() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const { registerCommand, showHelp, openCreateRoomDialog } =
     useCommandPalette();
   const [isOpen, setIsOpen] = useState(false);
@@ -149,6 +151,11 @@ export function AppMenu() {
               Settings
               <DropdownMenuShortcut>⌘K S</DropdownMenuShortcut>
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => navigate("/admin")}>
+                Admin
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuGroup>
             <DropdownMenuSub>

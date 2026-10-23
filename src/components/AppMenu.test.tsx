@@ -25,9 +25,11 @@ const mocks = vi.hoisted(() => ({
   openCreateRoomDialog: vi.fn(),
   signOut: vi.fn(),
   toastInfo: vi.fn(),
+  isAdmin: vi.fn(() => ({ isAdmin: false, isLoading: false })),
 }));
 
 vi.mock("@/hooks/useAuth");
+vi.mock("@/hooks/useIsAdmin", () => ({ useIsAdmin: mocks.isAdmin }));
 vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router-dom")>()),
   useNavigate: () => mocks.navigate,
@@ -59,6 +61,47 @@ describe("AppMenu", () => {
     // later test in this file and surface as an unhandled rejection.
     vi.resetAllMocks();
     mocks.registerCommand.mockReturnValue(vi.fn());
+    mocks.isAdmin.mockReturnValue({ isAdmin: false, isLoading: false });
+  });
+
+  describe("Admin item", () => {
+    const signedIn = () =>
+      vi.mocked(useAuthModule.useAuth).mockReturnValue({
+        user: { id: "u1" } as never,
+        session: null,
+        isAuthenticated: true,
+        isAnonymous: false,
+        isLoading: false,
+      });
+
+    it("shows Admin only to admins and opens the admin page", async () => {
+      signedIn();
+      mocks.isAdmin.mockReturnValue({ isAdmin: true, isLoading: false });
+      const user = userEvent.setup();
+      render(
+        <BrowserRouter>
+          <AppMenu />
+        </BrowserRouter>
+      );
+
+      await user.click(screen.getByRole("button"));
+      await user.click(await screen.findByText("Admin"));
+      expect(mocks.navigate).toHaveBeenCalledWith("/admin");
+    });
+
+    it("hides Admin from everyone else", async () => {
+      signedIn();
+      const user = userEvent.setup();
+      render(
+        <BrowserRouter>
+          <AppMenu />
+        </BrowserRouter>
+      );
+
+      await user.click(screen.getByRole("button"));
+      await screen.findByText("Log out");
+      expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+    });
   });
 
   describe("Unauthenticated State", () => {

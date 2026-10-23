@@ -279,6 +279,14 @@ joined as a guest stay attached.
 - Authentication only required for features like room history and saved preferences
 - Signing out drops the anonymous identity; the next visit gets a new guest user
 
+### Admin Metrics Page
+**Location**: `src/pages/AdminPage.tsx`, `src/lib/supabase/admin.ts`
+
+`/admin` shows usage across every room. Read policies are member-scoped, so the
+numbers come from the SECURITY DEFINER `admin_metrics()` function, which raises
+unless `auth.uid()` is in the `admins` table. Admins are listed by auth user id
+(add one in the SQL editor); `is_admin()` lets the menu show an "Admin" item.
+Users are reported as anonymous guests and signed-in accounts separately.
 
 ## Database Schema Key Points
 
