@@ -104,7 +104,7 @@ export function CreateRoomDialog({
       const room = await createRoom(
         data.roomName,
         data.participantName,
-        data.pointScale
+        data.pointScale,
       );
 
       // Save participant name to localStorage
@@ -127,7 +127,10 @@ export function CreateRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      {/* On phones the card sits just under the brand rather than in the
+          middle of the screen, which left an empty top half and pushed the
+          form down towards the keyboard. */}
+      <DialogContent className="top-22 translate-y-0 sm:top-[50%] sm:max-w-[500px] sm:translate-y-[-50%]">
         <DialogHeader>
           <DialogTitle>Create a Room</DialogTitle>
           <DialogDescription>
