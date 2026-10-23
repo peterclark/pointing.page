@@ -27,7 +27,6 @@ vi.mock("@/lib/utils", async () => {
   return {
     ...actual,
     getParticipantName: vi.fn(),
-    getParticipantId: vi.fn(),
     saveParticipantName: vi.fn(),
   };
 });
@@ -50,137 +49,6 @@ describe("Account Linking Integration", () => {
     Storage.prototype.getItem = vi.fn();
     Storage.prototype.setItem = vi.fn();
     Storage.prototype.removeItem = vi.fn();
-  });
-
-  it.skip("should complete full account creation and linking flow", async () => {
-    // SKIPPED: This test checks for magic link UI which was replaced with OAuth
-    // Scenario: User creates account -> receives magic link -> gets linked
-
-    // Step 1: Unauthenticated user on profile page
-    vi.mocked(useAuthModule.useAuth).mockReturnValue({
-      user: null,
-      session: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
-
-    vi.mocked(utils.getParticipantName).mockReturnValue("Test User");
-    vi.mocked(utils.getParticipantId).mockReturnValue("local-id-123");
-
-    vi.mocked(supabase.auth.signInWithOtp).mockResolvedValue({
-      data: {},
-      error: null,
-    } as any);
-
-    const { rerender } = render(
-      <BrowserRouter>
-        <ProfilePage />
-      </BrowserRouter>
-    );
-
-    // Fill form and submit
-    const nameInput = screen.getByLabelText(/name/i);
-    const emailInput = screen.getByLabelText(/email/i);
-    const submitButton = screen.getByRole("button", {
-      name: /send verification link/i,
-    });
-
-    expect(nameInput).toHaveValue("Test User"); // Pre-filled from localStorage
-
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.click(submitButton);
-
-    // Verify magic link sent and name stored
-    await waitFor(() => {
-      expect(supabase.auth.signInWithOtp).toHaveBeenCalledWith({
-        email: "test@example.com",
-        options: {
-          emailRedirectTo: expect.stringContaining("/profile"),
-          data: {
-            display_name: "Test User",
-          },
-        },
-      });
-    });
-
-    expect(Storage.prototype.setItem).toHaveBeenCalledWith(
-      "pending_profile_name",
-      "Test User"
-    );
-
-    // Step 2: User clicks magic link and becomes authenticated
-    const mockUser = {
-      id: "user-789",
-      email: "test@example.com",
-      aud: "authenticated",
-      role: "authenticated",
-      created_at: "2024-01-01T00:00:00Z",
-      app_metadata: {},
-      user_metadata: {},
-    };
-
-    vi.mocked(useAuthModule.useAuth).mockReturnValue({
-      user: mockUser,
-      session: {
-        user: mockUser,
-        access_token: "token",
-        refresh_token: "refresh",
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: "bearer",
-      },
-      isAuthenticated: true,
-      isLoading: false,
-    });
-
-    // Mock profile doesn't exist (new user)
-    vi.mocked(queries.getProfile).mockResolvedValue(null);
-
-    // Mock successful profile creation
-    vi.mocked(queries.createProfile).mockResolvedValue({
-      id: "profile-789",
-      user_id: "user-789",
-      display_name: "Test User",
-      created_at: "2024-01-01T00:00:00Z",
-    });
-
-    // Mock successful linking
-    vi.mocked(queries.linkParticipantsToUser).mockResolvedValue(undefined);
-
-    // Trigger rerender with authenticated state
-    Storage.prototype.getItem = vi.fn((key) => {
-      if (key === "pending_profile_name") return "Test User";
-      if (key === "participant_id") return "local-id-123";
-      return null;
-    });
-
-    rerender(
-      <BrowserRouter>
-        <ProfilePage />
-      </BrowserRouter>
-    );
-
-    // Verify account linking happens
-    await waitFor(() => {
-      expect(queries.createProfile).toHaveBeenCalledWith(
-        "user-789",
-        "Test User"
-      );
-    });
-
-    await waitFor(() => {
-      expect(queries.linkParticipantsToUser).toHaveBeenCalledWith(
-        "local-id-123",
-        "user-789"
-      );
-    });
-
-    // Verify pending name cleared
-    await waitFor(() => {
-      expect(Storage.prototype.removeItem).toHaveBeenCalledWith(
-        "pending_profile_name"
-      );
-    });
   });
 
   it("should handle profile update with localStorage sync", async () => {
@@ -345,54 +213,7 @@ describe("Account Linking Integration", () => {
 
     // Verify navigation to profile page
     await waitFor(() => {
-      expect(screen.getByText(/create account/i)).toBeInTheDocument();
-    });
-  });
-
-  it.skip("should handle magic link send error with user feedback", async () => {
-    // SKIPPED: This test checks for magic link UI which was replaced with OAuth
-    // Scenario: Magic link fails to send - user can retry
-
-    vi.mocked(useAuthModule.useAuth).mockReturnValue({
-      user: null,
-      session: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
-
-    vi.mocked(utils.getParticipantName).mockReturnValue("Test User");
-
-    vi.mocked(supabase.auth.signInWithOtp).mockResolvedValue({
-      data: {},
-      error: {
-        message: "Rate limit exceeded",
-        name: "RateLimitError",
-        status: 429,
-      },
-    } as any);
-
-    render(
-      <BrowserRouter>
-        <ProfilePage />
-      </BrowserRouter>
-    );
-
-    const emailInput = screen.getByLabelText(/email/i);
-    const submitButton = screen.getByRole("button", {
-      name: /send verification link/i,
-    });
-
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.click(submitButton);
-
-    // Verify error handling
-    await waitFor(() => {
-      expect(supabase.auth.signInWithOtp).toHaveBeenCalled();
-    });
-
-    // Form should remain enabled for retry
-    await waitFor(() => {
-      expect(submitButton).not.toBeDisabled();
+      expect(screen.getByRole("heading", { name: /take a seat/i })).toBeInTheDocument();
     });
   });
 

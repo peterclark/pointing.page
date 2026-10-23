@@ -23,7 +23,7 @@ jobs:
     # Lets you require an approval (and scope the secrets) in repo settings.
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Replaces a hand-rolled curl of a release asset, which fetched an
       # unpinned "latest" build from a URL that no longer matches Supabase's

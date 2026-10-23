@@ -20,21 +20,19 @@ import * as useAuthModule from "@/hooks/useAuth";
 // observable from the test body.
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  setTheme: vi.fn(),
   registerCommand: vi.fn(() => vi.fn()),
   showHelp: vi.fn(),
   openCreateRoomDialog: vi.fn(),
   signOut: vi.fn(),
   toastInfo: vi.fn(),
+  isAdmin: vi.fn(() => ({ isAdmin: false, isLoading: false })),
 }));
 
 vi.mock("@/hooks/useAuth");
+vi.mock("@/hooks/useIsAdmin", () => ({ useIsAdmin: mocks.isAdmin }));
 vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router-dom")>()),
   useNavigate: () => mocks.navigate,
-}));
-vi.mock("@/components/theme-provider", () => ({
-  useTheme: () => ({ theme: "system", setTheme: mocks.setTheme }),
 }));
 vi.mock("@/hooks/useCommandPalette", () => ({
   useCommandPalette: () => ({
@@ -47,6 +45,11 @@ vi.mock("@/lib/supabase/auth", () => ({ signOut: mocks.signOut }));
 vi.mock("sonner", () => ({
   toast: { info: mocks.toastInfo, success: vi.fn(), error: vi.fn() },
 }));
+vi.mock("@/components/RecentRoomsMenuItems", () => ({
+  RecentRoomsMenuItems: ({ userId }: { userId?: string }) => (
+    <div data-testid="recent-rooms">{userId}</div>
+  ),
+}));
 vi.mock("@/components/current-user-avatar", () => ({
   CurrentUserAvatar: () => <div data-testid="user-avatar">Avatar</div>,
 }));
@@ -58,6 +61,47 @@ describe("AppMenu", () => {
     // later test in this file and surface as an unhandled rejection.
     vi.resetAllMocks();
     mocks.registerCommand.mockReturnValue(vi.fn());
+    mocks.isAdmin.mockReturnValue({ isAdmin: false, isLoading: false });
+  });
+
+  describe("Admin item", () => {
+    const signedIn = () =>
+      vi.mocked(useAuthModule.useAuth).mockReturnValue({
+        user: { id: "u1" } as never,
+        session: null,
+        isAuthenticated: true,
+        isAnonymous: false,
+        isLoading: false,
+      });
+
+    it("shows Admin only to admins and opens the admin page", async () => {
+      signedIn();
+      mocks.isAdmin.mockReturnValue({ isAdmin: true, isLoading: false });
+      const user = userEvent.setup();
+      render(
+        <BrowserRouter>
+          <AppMenu />
+        </BrowserRouter>
+      );
+
+      await user.click(screen.getByRole("button"));
+      await user.click(await screen.findByText("Admin"));
+      expect(mocks.navigate).toHaveBeenCalledWith("/admin");
+    });
+
+    it("hides Admin from everyone else", async () => {
+      signedIn();
+      const user = userEvent.setup();
+      render(
+        <BrowserRouter>
+          <AppMenu />
+        </BrowserRouter>
+      );
+
+      await user.click(screen.getByRole("button"));
+      await screen.findByText("Log out");
+      expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+    });
   });
 
   describe("Unauthenticated State", () => {
@@ -280,22 +324,18 @@ describe("AppMenu", () => {
       expect(mocks.navigate).toHaveBeenCalledWith("/profile");
     });
 
+    it("navigates to settings", async () => {
+      const click = await openMenu();
+      await click(/^Settings/);
+
+      expect(mocks.navigate).toHaveBeenCalledWith("/settings");
+    });
+
     it("opens the create-room dialog", async () => {
       const click = await openMenu();
       await click(/^New Room/);
 
       expect(mocks.openCreateRoomDialog).toHaveBeenCalled();
-    });
-
-    it.each([
-      [/^Light/, "light"],
-      [/^Dark/, "dark"],
-      [/^System/, "system"],
-    ])("switches theme via %s", async (name, expected) => {
-      const click = await openMenu();
-      await click(name);
-
-      expect(mocks.setTheme).toHaveBeenCalledWith(expected);
     });
 
     it("opens the keyboard shortcuts help", async () => {
@@ -305,11 +345,22 @@ describe("AppMenu", () => {
       expect(mocks.showHelp).toHaveBeenCalled();
     });
 
-    it("tells the user Support is not built yet", async () => {
-      const click = await openMenu();
-      await click("Support");
+    it("links Support to the issue tracker in a new tab", async () => {
+      await openMenu();
+      const support = screen.getByRole("menuitem", { name: "Support" });
 
-      expect(mocks.toastInfo).toHaveBeenCalledWith("Support page coming soon!");
+      expect(support).toHaveAttribute(
+        "href",
+        "https://github.com/peterclark/pointing.page/issues/new"
+      );
+      expect(support).toHaveAttribute("target", "_blank");
+    });
+
+    it("shows the user's recent rooms in the Rooms submenu", async () => {
+      await openMenu(true);
+      await userEvent.click(screen.getByRole("menuitem", { name: "Rooms" }));
+
+      expect(await screen.findByTestId("recent-rooms")).toHaveTextContent("user-1");
     });
 
     it("signs out and returns home", async () => {
@@ -362,27 +413,18 @@ describe("AppMenu", () => {
       const commands = registeredCommands();
 
       expect([...commands.keys()].sort()).toEqual(
-        ["?", "b", "d", "h", "l", "p", "q", "r", "s", "t"].sort()
+        ["?", "h", "p", "q", "r", "s"].sort()
       );
     });
 
     it.each([
       ["h", "/"],
       ["p", "/profile"],
+      ["s", "/settings"],
     ])("⌘K %s navigates to %s", (key, path) => {
       registeredCommands().get(key)!();
 
       expect(mocks.navigate).toHaveBeenCalledWith(path);
-    });
-
-    it.each([
-      ["l", "light"],
-      ["d", "dark"],
-      ["t", "system"],
-    ])("⌘K %s switches theme to %s", (key, expected) => {
-      registeredCommands().get(key)!();
-
-      expect(mocks.setTheme).toHaveBeenCalledWith(expected);
     });
 
     it("⌘K r opens the create-room dialog", () => {
@@ -397,13 +439,6 @@ describe("AppMenu", () => {
       expect(mocks.showHelp).toHaveBeenCalled();
     });
 
-    it.each(["b", "s"])("⌘K %s reports an unbuilt page", (key) => {
-      registeredCommands().get(key)!();
-
-      expect(mocks.toastInfo).toHaveBeenCalledWith(
-        expect.stringContaining("coming soon")
-      );
-    });
 
     it("unregisters its commands on unmount", () => {
       const cleanup = vi.fn();
@@ -423,9 +458,9 @@ describe("AppMenu", () => {
       );
       unmount();
 
-      // Ten commands registered, ten torn down — otherwise a remount would
+      // Six commands registered, six torn down — otherwise a remount would
       // stack duplicate handlers.
-      expect(cleanup).toHaveBeenCalledTimes(10);
+      expect(cleanup).toHaveBeenCalledTimes(6);
     });
   });
 

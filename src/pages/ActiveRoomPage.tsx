@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
+import {
+  ClipboardDocumentIcon,
+  ShareIcon,
+} from "@heroicons/react/24/outline";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +20,13 @@ import type { Tables } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRoomSubscription } from "@/hooks/useRoomSubscription";
 import { useAuth } from "@/hooks/useAuth";
+import { ensureSession, SESSION_ERROR } from "@/lib/supabase/auth";
 import { StoryForm } from "@/components/StoryForm";
 import { VotingButtons } from "@/components/VotingButtons";
 import { ParticipantStatus } from "@/components/ParticipantStatus";
 import { VoteResults } from "@/components/VoteResults";
 import { LeaderControls } from "@/components/LeaderControls";
-import Header from "@/components/Header";
+import { useCardTable } from "@/hooks/useCardTable";
 
 /**
  * Active Room Page Component
@@ -46,6 +50,7 @@ import Header from "@/components/Header";
  * 3. Active Story (revealed) → All see results, leader sees "Next Story" button
  */
 export function ActiveRoomPage() {
+  useCardTable();
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
   const [room, setRoom] = useState<Tables<"rooms"> | null>(null);
@@ -104,6 +109,7 @@ export function ActiveRoomPage() {
     isLoading: isLoadingSubscription,
     error: subscriptionError,
     isReconnecting,
+    refetch,
   } = useRoomSubscription(room?.id || "");
 
   // State for joining the room
@@ -158,18 +164,20 @@ export function ActiveRoomPage() {
   // Determine leader status
   const isLeader = currentParticipant?.is_leader ?? false;
 
+  const leaderName = useMemo(
+    () => participants.find((p) => p.is_leader && p.is_active)?.name ?? null,
+    [participants]
+  );
+
   // Find active story
   const activeStory = useMemo(
     () => stories.find((s) => s.is_active) || null,
     [stories]
   );
 
-  // Check if active story votes are revealed
-  // We check if any vote for the active story has is_revealed=true
-  const isRevealed = useMemo(() => {
-    if (!activeStory) return false;
-    return votes.some((v) => v.story_id === activeStory.id && v.is_revealed);
-  }, [activeStory, votes]);
+  // Reveal state lives on the story, so a story nobody voted on can still be
+  // revealed and moved past.
+  const isRevealed = Boolean(activeStory?.revealed_at);
 
   // Filter votes for privacy (participants only see their own unrevealed votes)
   const visibleVotes = useMemo(
@@ -190,14 +198,18 @@ export function ActiveRoomPage() {
     e.preventDefault();
     if (!room || !joinName.trim() || isJoining) return;
 
-    if (!user) {
-      toast.error("Still starting your session. Please try again.");
+    if (!user && !(await ensureSession())) {
+      toast.error(SESSION_ERROR);
       return;
     }
 
     setIsJoining(true);
     try {
-      await joinRoom(room.id, user.id, joinName.trim());
+      await joinRoom(room.id, joinName.trim());
+
+      // Room data is readable only by members, so the board loaded before
+      // joining came back empty. Load it again now that we are in.
+      refetch();
 
       // Remembered only to pre-fill the name field next time.
       saveParticipantName(joinName.trim());
@@ -213,6 +225,25 @@ export function ActiveRoomPage() {
   };
 
   // Handle copy room code
+  // The native share sheet is the natural way to send a link on phones.
+  const canShare = typeof navigator !== "undefined" && "share" in navigator;
+
+  const handleShare = async () => {
+    if (!roomCode || !room) return;
+    try {
+      await navigator.share({
+        title: `${room.name} · Pointing.page`,
+        text: `Join "${room.name}" to point stories together`,
+        url: `${window.location.origin}/join/${roomCode}`,
+      });
+    } catch (err) {
+      // Dismissing the sheet rejects with AbortError; that is not a failure.
+      if ((err as Error)?.name !== "AbortError") {
+        toast.error("Couldn't open sharing. Use Copy Link instead.");
+      }
+    }
+  };
+
   const handleCopyRoomCode = async () => {
     if (!roomCode) return;
 
@@ -236,10 +267,10 @@ export function ActiveRoomPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center px-6">
         <div className="text-center">
-          <p className="text-muted-foreground text-lg">Loading room...</p>
-          <p className="text-muted-foreground text-sm mt-2">
+          <p className="font-display text-3xl">Loading room...</p>
+          <p className="mt-2 text-sm text-ivory/70">
             Connecting to real-time updates...
           </p>
         </div>
@@ -250,11 +281,11 @@ export function ActiveRoomPage() {
   // Error state
   if (subscriptionError) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Card className="p-6 max-w-md">
-          <div className="text-center space-y-4">
-            <p className="text-destructive font-semibold">Connection Error</p>
-            <p className="text-muted-foreground text-sm">
+      <div className="flex min-h-dvh items-center justify-center px-6">
+        <Card className="max-w-md p-6">
+          <div className="space-y-4 text-center">
+            <p className="font-semibold text-destructive">Connection Error</p>
+            <p className="text-sm text-muted-foreground">
               {subscriptionError.message}
             </p>
             <Button onClick={() => window.location.reload()}>
@@ -276,58 +307,49 @@ export function ActiveRoomPage() {
   // Show join form if participant is not a member
   if (showJoinForm) {
     return (
-      <div className="container mx-auto min-h-screen px-4 py-8">
-        <div className="mx-auto max-w-md space-y-8">
-          {/* Room Header */}
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div className="text-center">
-                <h1 className="text-3xl font-bold">{room.name}</h1>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Room Code</p>
-                <p className="mt-1 font-mono text-2xl font-bold tracking-wider">
-                  {formattedCode}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Join Form */}
-          <Card className="p-6">
-            <form onSubmit={handleJoinRoom} className="space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-semibold">Join Room</h2>
-                <p className="text-muted-foreground text-sm">
-                  Enter your name to join this story pointing session
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="joinName">Your Name</Label>
-                <Input
-                  id="joinName"
-                  type="text"
-                  placeholder="Enter your name"
-                  value={joinName}
-                  onChange={(e) => setJoinName(e.target.value)}
-                  disabled={isJoining}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                disabled={!joinName.trim() || isJoining}
-              >
-                {isJoining ? "Joining..." : "Join Room"}
-              </Button>
-            </form>
-          </Card>
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-8 px-6 py-16">
+        <div className="text-center">
+          <p className="text-xs font-semibold tracking-[0.15em] text-ivory/65 uppercase">
+            Table {formattedCode}
+          </p>
+          <h1 className="font-display mt-2 text-4xl leading-tight">
+            {room.name}
+          </h1>
         </div>
+
+        <Card className="p-6">
+          <form onSubmit={handleJoinRoom} className="space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold">Join Room</h2>
+              <p className="text-sm text-muted-foreground">
+                Enter your name to take a seat at this table
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="joinName">Your Name</Label>
+              <Input
+                id="joinName"
+                type="text"
+                placeholder="Enter your name"
+                value={joinName}
+                onChange={(e) => setJoinName(e.target.value)}
+                disabled={isJoining}
+                required
+                autoFocus
+              />
+            </div>
+
+            <Button
+              type="submit"
+              size="lg"
+              className="h-12 w-full rounded-2xl font-extrabold"
+              disabled={!joinName.trim() || isJoining}
+            >
+              {isJoining ? "Joining..." : "Join Room"}
+            </Button>
+          </form>
+        </Card>
       </div>
     );
   }
@@ -337,164 +359,169 @@ export function ActiveRoomPage() {
     return null;
   }
 
+  const storyVotes = activeStory
+    ? votes.filter((v) => v.story_id === activeStory.id)
+    : [];
+  // Receipts say who has voted; the votes we can see (our own) are a floor.
+  const votedIds = new Set([
+    ...votedParticipantIds,
+    ...storyVotes.map((v) => v.participant_id),
+  ]);
+  const votedCount = participants.filter((p) => votedIds.has(p.id)).length;
+  const stillChoosing = participants
+    .filter((p) => !votedIds.has(p.id))
+    .map((p) => (p.id === participantId ? "you" : p.name));
+
   return (
-    <div className="container mx-auto min-h-screen px-4 py-8">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <Header />
-        {/* Room Header Section */}
-        <Card className="p-6">
-          <div className="space-y-4">
-            {/* Room Name */}
-            <div className="text-center sm:text-left">
-              <h1 className="text-3xl font-bold">{room.name}</h1>
-            </div>
+    <div className="mx-auto min-h-dvh max-w-3xl px-5 pt-4 pb-10">
+      {/* Top bar: room name beside the menu, code chip to share the table */}
+      <header className="flex h-11 items-center gap-2 pl-12 min-[900px]:pl-0">
+        <h1 className="font-display mr-auto truncate text-xl">{room.name}</h1>
+        {canShare && (
+          <Button
+            onClick={handleShare}
+            variant="ghost"
+            size="icon"
+            aria-label="Share"
+            className="rounded-full text-ivory hover:bg-ivory/10 hover:text-ivory"
+          >
+            <ShareIcon className="h-5 w-5" />
+          </Button>
+        )}
+        <Button
+          onClick={handleCopyRoomCode}
+          variant="ghost"
+          aria-label={`Copy link to room ${formattedCode}`}
+          className="gap-2 rounded-full bg-black/25 px-3 font-semibold tracking-wider text-ivory hover:bg-black/35 hover:text-ivory"
+        >
+          {formattedCode}
+          <ClipboardDocumentIcon className="h-4 w-4" />
+        </Button>
+      </header>
 
-            {/* Room Code and Copy Button */}
-            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between">
-              <div className="text-center sm:text-left">
-                <p className="text-sm text-muted-foreground">Room Code</p>
-                <p className="mt-1 font-mono text-2xl font-bold tracking-wider">
-                  {formattedCode}
-                </p>
-              </div>
-              <div className="flex gap-4 items-center">
-                <Button
-                  onClick={handleCopyRoomCode}
-                  variant="outline"
-                  size="lg"
-                  className="gap-2"
-                >
-                  <ClipboardDocumentIcon className="h-5 w-5" />
-                  Copy Link
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
+      {/* Screen-reader announcement of the round's state */}
+      <p className="sr-only" aria-live="polite">
+        {activeStory
+          ? isRevealed
+            ? `Votes revealed for ${activeStory.title}`
+            : `Voting open for ${activeStory.title}`
+          : ""}
+      </p>
 
-        {/* Voting Flow - Conditional Rendering Based on State */}
-        <div className="space-y-6">
-          {/* State 1: No Active Story */}
-          {!activeStory && (
-            <>
-              {isLeader ? (
-                // Leader sees story form
-                <StoryForm roomId={room.id} />
-              ) : (
-                // Non-leaders see waiting message
-                <Card className="p-8">
-                  <div className="text-center text-muted-foreground space-y-2">
-                    <p className="text-lg font-medium">
-                      Waiting for leader to start voting
-                    </p>
-                    <p className="text-sm">
-                      The leader will create a story for the team to estimate
-                    </p>
-                  </div>
-                </Card>
+      <div className="mt-6 space-y-8">
+        {/* State 1: No Active Story */}
+        {!activeStory &&
+          (isLeader ? (
+            <StoryForm roomId={room.id} />
+          ) : (
+            <div className="py-16 text-center">
+              <p className="font-display text-3xl leading-tight">
+                Waiting for {leaderName ?? "the leader"} to start voting
+              </p>
+              <p className="mt-3 text-sm text-ivory/70">
+                The leader will deal a story for the team to estimate
+              </p>
+            </div>
+          ))}
+
+        {/* State 2 & 3: Active Story Exists */}
+        {activeStory && (
+          <>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold tracking-[0.15em] text-ivory/65 uppercase">
+                {isRevealed ? "Story · revealed" : "Story"}
+              </p>
+              <h2 className="font-display text-3xl leading-tight">
+                {activeStory.title}
+              </h2>
+              {activeStory.description && (
+                <p className="pt-1 text-ivory/75">{activeStory.description}</p>
               )}
-            </>
-          )}
+            </div>
 
-          {/* State 2 & 3: Active Story Exists */}
-          {activeStory && (
-            <>
-              {/* Story Details */}
-              <Card className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-2xl font-semibold">
-                      {activeStory.title}
-                    </h2>
-                    {activeStory.description && (
-                      <p className="text-muted-foreground mt-2">
-                        {activeStory.description}
-                      </p>
+            {/* State 2: Active Story (Not Revealed) - Voting Interface */}
+            {!isRevealed && (
+              <>
+                <div className="flex items-end gap-4">
+                  <p className="text-[7rem] leading-[0.85] font-extrabold tracking-tighter sm:text-[8rem]">
+                    {votedCount}
+                    <span className="text-ivory/35">/{participants.length}</span>
+                  </p>
+                  <p className="pb-2 text-sm text-ivory/80">
+                    cards down.
+                    {stillChoosing.length > 0 && (
+                      <>
+                        <br />
+                        Waiting on {formatNames(stillChoosing)}.
+                      </>
                     )}
-                  </div>
-
-                  {/* Participant Status */}
-                  <div className="pt-2">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Participants ({participants.length})
-                    </p>
-                    <ParticipantStatus
-                      participants={participants}
-                      votes={votes.filter((v) => v.story_id === activeStory.id)}
-                      votedParticipantIds={votedParticipantIds}
-                      isRevealed={isRevealed}
-                    />
-                  </div>
+                  </p>
                 </div>
-              </Card>
 
-              {/* State 2: Active Story (Not Revealed) - Voting Interface */}
-              {!isRevealed && (
-                <Card className="p-6">
-                  <div className="space-y-6">
-                    <div className="sm:text-left flex">
-                      <div>
-                        <h3 className="text-xl font-semibold">
-                          Cast Your Vote
-                        </h3>
-                        <p className="text-muted-foreground text-sm mt-1">
-                          Select your estimation for this story
-                        </p>
-                      </div>
+                <ParticipantStatus
+                  participants={participants}
+                  votes={storyVotes}
+                  votedParticipantIds={votedParticipantIds}
+                  isRevealed={false}
+                />
 
-                      {/* Leader Controls - Reveal Button */}
-                      {isLeader && (
-                        <div className="ml-auto flex justify-center sm:justify-end pt-4">
-                          <LeaderControls
-                            roomId={room.id}
-                            storyId={activeStory.id}
-                            isRevealed={false}
-                            isLeader={true}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <VotingButtons
-                      storyId={activeStory.id}
-                      participantId={participantId}
-                      pointScale={room.point_scale}
-                      currentVote={currentVote}
-                      isRevealed={false}
-                    />
-                  </div>
-                </Card>
-              )}
-
-              {/* State 3: Active Story (Revealed) - Results Display */}
-              {isRevealed && (
-                <>
-                  {/* Vote Results */}
-                  <VoteResults
-                    votes={votes.filter((v) => v.story_id === activeStory.id)}
-                    participants={participants}
+                <section aria-labelledby="your-hand" className="space-y-1">
+                  <h3
+                    id="your-hand"
+                    className="text-xs font-semibold tracking-[0.15em] text-ivory/65 uppercase"
+                  >
+                    Your hand
+                  </h3>
+                  <VotingButtons
+                    storyId={activeStory.id}
+                    participantId={participantId}
                     pointScale={room.point_scale}
+                    currentVote={currentVote}
+                    isRevealed={false}
                   />
+                </section>
 
-                  {/* Leader Controls - Next Story Button */}
-                  {isLeader && (
-                    <Card className="p-6">
-                      <div className="flex justify-center sm:justify-end">
-                        <LeaderControls
-                          roomId={room.id}
-                          storyId={activeStory.id}
-                          isRevealed={true}
-                          isLeader={true}
-                        />
-                      </div>
-                    </Card>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </div>
+                {isLeader && (
+                  <LeaderControls
+                    roomId={room.id}
+                    storyId={activeStory.id}
+                    isRevealed={false}
+                    isLeader={true}
+                  />
+                )}
+              </>
+            )}
+
+            {/* State 3: Active Story (Revealed) - Results Display */}
+            {isRevealed && (
+              <>
+                <VoteResults
+                  votes={storyVotes}
+                  participants={participants}
+                  pointScale={room.point_scale}
+                />
+
+                {isLeader && (
+                  <LeaderControls
+                    roomId={room.id}
+                    storyId={activeStory.id}
+                    isRevealed={true}
+                    isLeader={true}
+                  />
+                )}
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
+}
+
+/** "Ana", "Ana and Ben", "Ana, Ben and 2 others". */
+function formatNames(names: string[]): string {
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
+  return `${names[0]}, ${names[1]} and ${names.length - 2} others`;
 }

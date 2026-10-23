@@ -148,7 +148,7 @@ Comprehensive documentation is available in the `/docs` directory:
 - **[Database Operations](./docs/database-operations.md)** - Developer guide for common operations
 
 #### Security and Real-time
-- **[RLS Policies](./docs/rls-policies.md)** - Row Level Security policies and access control
+- **[Security Model](./docs/security-model.md)** - Who can read and write what, and how the database enforces it
 - **[Real-time Subscriptions](./docs/realtime-subscriptions.md)** - Live updates and subscription patterns
 
 #### Deployment
@@ -201,7 +201,7 @@ shadcn-mcp/
 │   ├── database-schema.md
 │   ├── database-migrations.md
 │   ├── database-operations.md
-│   ├── rls-policies.md
+│   ├── security-model.md
 │   ├── realtime-subscriptions.md
 │   ├── authentication-*.md
 │   └── production-deployment.md
@@ -314,7 +314,7 @@ See [Database Schema Documentation](./docs/database-schema.md) for complete arch
 7. **RLS policies enforced** - All access control at database level
 8. **Anon key is safe to expose** - Service role key never exposed to frontend
 
-See [RLS Policies Documentation](./docs/rls-policies.md) for security details.
+See [Security Model](./docs/security-model.md) for security details.
 
 ## Troubleshooting
 

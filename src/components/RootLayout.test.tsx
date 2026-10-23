@@ -11,6 +11,7 @@ vi.mock("./AppMenu", () => ({ AppMenu: () => <nav>menu</nav> }));
 vi.mock("./KeyboardShortcutsDialog", () => ({
   KeyboardShortcutsDialog: () => <div>shortcuts</div>,
 }));
+vi.mock("./CreateRoomFlow", () => ({ CreateRoomFlow: () => null }));
 vi.mock("./CommandPaletteIndicator", () => ({
   CommandPaletteIndicator: () => <div>indicator</div>,
 }));

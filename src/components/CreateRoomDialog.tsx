@@ -17,8 +17,9 @@ import {
   getParticipantName,
   saveParticipantName,
 } from "@/lib/utils";
-import { createRoom, joinRoom } from "@/lib/supabase/queries";
+import { createRoom } from "@/lib/supabase/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { ensureSession, SESSION_ERROR } from "@/lib/supabase/auth";
 
 interface CreateRoomDialogProps {
   open: boolean;
@@ -85,8 +86,10 @@ export function CreateRoomDialog({
   }, [open, reset, preservedRoomName]);
 
   const onSubmit = async (data: CreateRoomFormData) => {
-    if (!user) {
-      onRoomCreationError("Still starting your session. Please try again.");
+    // The gate opens even when sign-in failed, so try once more here: that
+    // also retries the CAPTCHA, which is the usual reason it failed.
+    if (!user && !(await ensureSession())) {
+      onRoomCreationError(SESSION_ERROR);
       return;
     }
 
@@ -96,15 +99,16 @@ export function CreateRoomDialog({
     onRoomCreationStart(data.roomName);
 
     try {
-      // Create the room
-      const room = await createRoom(data.roomName, data.pointScale);
+      // Create the room. The database adds the creator as its leader in the
+      // same transaction, keyed to the session identity.
+      const room = await createRoom(
+        data.roomName,
+        data.participantName,
+        data.pointScale,
+      );
 
       // Save participant name to localStorage
       saveParticipantName(data.participantName);
-
-      // Join the room as the first participant (becomes leader). The room is
-      // keyed to the session identity, so no participant id is cached locally.
-      await joinRoom(room.id, user.id, data.participantName);
 
       // Notify parent of success with room code
       onRoomCreationSuccess(room.room_code);
@@ -123,7 +127,10 @@ export function CreateRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      {/* On phones the card sits just under the brand rather than in the
+          middle of the screen, which left an empty top half and pushed the
+          form down towards the keyboard. */}
+      <DialogContent className="top-22 translate-y-0 sm:top-[50%] sm:max-w-[500px] sm:translate-y-[-50%]">
         <DialogHeader>
           <DialogTitle>Create a Room</DialogTitle>
           <DialogDescription>

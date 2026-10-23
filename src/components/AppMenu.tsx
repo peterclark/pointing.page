@@ -13,25 +13,22 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  DoorClosed,
-  LaptopMinimal,
-  MenuIcon,
-  MoonIcon,
-  SunIcon,
-} from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { DoorClosed, MenuIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { CurrentUserAvatar } from "@/components/current-user-avatar";
+import { RecentRoomsMenuItems } from "@/components/RecentRoomsMenuItems";
 import { signOut } from "@/lib/supabase/auth";
-import { toast } from "sonner";
+
+// Support requests go to the public issue tracker.
+const SUPPORT_URL = "https://github.com/peterclark/pointing.page/issues/new";
 
 export function AppMenu() {
-  const { setTheme } = useTheme();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const { registerCommand, showHelp, openCreateRoomDialog } =
     useCommandPalette();
   const [isOpen, setIsOpen] = useState(false);
@@ -80,15 +77,9 @@ export function AppMenu() {
         category: "navigation",
       }),
       registerCommand({
-        key: "b",
-        description: "Billing",
-        action: () => toast.info("Billing page coming soon!"),
-        category: "navigation",
-      }),
-      registerCommand({
         key: "s",
         description: "Settings",
-        action: () => toast.info("Settings page coming soon!"),
+        action: () => navigate("/settings"),
         category: "navigation",
       }),
 
@@ -98,35 +89,6 @@ export function AppMenu() {
         description: "New Room",
         action: () => openCreateRoomDialog(),
         category: "room",
-      }),
-
-      // Theme commands
-      registerCommand({
-        key: "l",
-        description: "Light theme",
-        action: () => {
-          setTheme("light");
-          toast.success("Switched to light theme");
-        },
-        category: "theme",
-      }),
-      registerCommand({
-        key: "d",
-        description: "Dark theme",
-        action: () => {
-          setTheme("dark");
-          toast.success("Switched to dark theme");
-        },
-        category: "theme",
-      }),
-      registerCommand({
-        key: "t",
-        description: "System theme",
-        action: () => {
-          setTheme("system");
-          toast.success("Switched to system theme");
-        },
-        category: "theme",
       }),
 
       // Help commands
@@ -151,7 +113,6 @@ export function AppMenu() {
     };
   }, [
     navigate,
-    setTheme,
     registerCommand,
     showHelp,
     openCreateRoomDialog,
@@ -162,7 +123,7 @@ export function AppMenu() {
     <div className="fixed top-0 left-0 p-4 z-10">
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="link" size="icon">
+          <Button variant="link" size="icon" className="text-foreground">
             {isAuthenticated ? <CurrentUserAvatar /> : <MenuIcon />}
           </Button>
         </DropdownMenuTrigger>
@@ -186,13 +147,22 @@ export function AppMenu() {
               Account
               <DropdownMenuShortcut>⌘K P</DropdownMenuShortcut>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              Settings
+              <DropdownMenuShortcut>⌘K S</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => navigate("/admin")}>
+                Admin
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuGroup>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>Rooms</DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent>
-                  <DropdownMenuItem>Active room here...</DropdownMenuItem>
+                  <RecentRoomsMenuItems userId={user?.id} />
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
@@ -203,28 +173,10 @@ export function AppMenu() {
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setTheme("light")}>
-              <SunIcon />
-              Light
-              <DropdownMenuShortcut>⌘K L</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")}>
-              <MoonIcon />
-              Dark
-              <DropdownMenuShortcut>⌘K D</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")}>
-              <LaptopMinimal />
-              System
-              <DropdownMenuShortcut>⌘K T</DropdownMenuShortcut>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => toast.info("Support page coming soon!")}
-          >
-            Support
+          <DropdownMenuItem asChild>
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+              Support
+            </a>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => showHelp()}>
             Keyboard shortcuts

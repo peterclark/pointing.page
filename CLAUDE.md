@@ -64,7 +64,8 @@ Configured in both vite.config.ts:10-12 and tsconfig.json:12-14:
 - **Base Color**: slate (components.json:9)
 - **Utility Function**: `cn()` in src/lib/utils.ts combines clsx and tailwind-merge for conditional classes
 - **Responsive Design**: Mobile-first approach with sm:, md:, lg: breakpoints
-- **Grid Layouts**: Used for voting buttons and result cards with responsive column counts
+- **Card Table Theme**: Every page is on the felt. The landing and room pages call `useCardTable()` (the profile and settings pages get it through the `TablePage` layout), which puts `felt dark` on `<body>`; there is no light theme or theme switch any more; `.felt` in `src/index.css` tints the shadcn palette green. Colors `felt`, `ivory`, `ink`, `suit`, `gold` and fonts `font-display`, `font-card` are theme tokens
+- **Fanned Cards**: `PlayingCard` draws a card face or back; `fanStyle()` in `src/lib/cards.ts` with the `.fan-card` class tilts it into a fan. Fans sit in shrinking flex slots so they overlap more on narrow screens instead of wrapping
 
 ### Component Patterns
 shadcn/ui components follow these patterns:
@@ -144,7 +145,7 @@ Page uses state machine pattern with 3 distinct states:
 
 **State Determination**:
 - Active story: `stories.find(s => s.is_active)`
-- Is revealed: `votes.some(v => v.story_id === activeStory.id && v.is_revealed)`
+- Is revealed: `Boolean(activeStory.revealed_at)` (set by `reveal_votes()`, so a story with no votes can still be revealed)
 - Is leader: `currentParticipant?.is_leader`
 
 ### Form Validation Pattern
@@ -174,7 +175,7 @@ calculateFibonacciConsensus(votes): { average, consensus, outlierThreshold }
 ```
 - Calculates numeric average
 - Returns rounded consensus value
-- Identifies outliers (votes outside 1 step of consensus)
+- Identifies outliers (votes more than 2 steps from consensus)
 
 **T-shirt Scale**:
 ```typescript
@@ -188,8 +189,8 @@ calculateTshirtConsensus(votes): { mode, consensus, outlierThreshold }
 ```typescript
 isConsensusVote(vote, consensus, scale): boolean
 ```
-- Returns true if vote is within 1 step of consensus
-- Used for green (consensus) vs yellow (outlier) border highlighting
+- Returns true if vote is within range of consensus (2 steps on Fibonacci, 1 on T-shirt); `consensusRange()` gives the lowest and highest such vote for the legend
+- Used for the gold edge on revealed cards that agree with the result
 
 ### Optimistic UI Updates
 **Location**: `src/components/VotingButtons.tsx`
@@ -237,8 +238,8 @@ OAuth-based authentication using Google and Github providers via Supabase:
 1. Unauthenticated users see LoginForm component with Google and Github buttons
 2. OAuth redirect to provider for authorization
 3. Callback to landing page (/) after successful auth
-4. Automatic account linking: anonymous localStorage participant ID → authenticated user_id
-5. Profile creation with OAuth metadata (display_name, email, avatar_url)
+4. `linkIdentity()` upgrades the anonymous user in place, so `auth.uid()` and every participant row stay the same
+5. ProfilePage replaces the trigger's "Guest xxxxxxxx" display name with the OAuth name
 
 **Key Components**:
 - **LoginForm**: Social auth buttons with Google and Github providers
@@ -249,7 +250,7 @@ OAuth-based authentication using Google and Github providers via Supabase:
 - **ProfilePage**: Conditional rendering based on auth state
   - Unauthenticated: Shows LoginForm with social auth options
   - Authenticated: Shows profile with avatar, email (read-only), and editable display name
-  - Auto-links anonymous participants on first auth (via `linkingAttemptedRef`)
+  - Upgrades the guest profile name once on first sign-in (via `linkingAttemptedRef`)
 
 - **AppMenu**: Hamburger menu with conditional trigger
   - Unauthenticated: Shows MenuIcon (three bars)
@@ -262,16 +263,9 @@ OAuth-based authentication using Google and Github providers via Supabase:
 - **Display Name**: `user.user_metadata.display_name` or `user.user_metadata.full_name`
 - **Email**: `user.email` (always read-only from OAuth provider)
 
-**Account Linking**:
-```typescript
-// On first authentication, link anonymous participants to user
-if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
-  const localStorageId = getParticipantId();
-  if (localStorageId) {
-    await linkParticipantsToUser(localStorageId, user.id);
-  }
-}
-```
+**Account Linking**: none is needed. Because sign-in links the provider
+identity to the existing anonymous user, the user id never changes and rooms
+joined as a guest stay attached.
 
 **Setup Requirements**:
 - Configure OAuth providers in Supabase dashboard (see OAUTH_SETUP.md)
@@ -283,17 +277,30 @@ if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
 - Authentication is optional for using the app
 - Anonymous users can join rooms, vote, and participate fully
 - Authentication only required for features like room history and saved preferences
-- localStorage participant ID system unchanged
+- Signing out drops the anonymous identity; the next visit gets a new guest user
 
+### Admin Metrics Page
+**Location**: `src/pages/AdminPage.tsx`, `src/lib/supabase/admin.ts`
+
+`/admin` shows usage across every room. Read policies are member-scoped, so the
+numbers come from the SECURITY DEFINER `admin_metrics()` function, which raises
+unless `auth.uid()` is in the `admins` table. Admins are listed by auth user id
+(add one in the SQL editor); `is_admin()` lets the menu show an "Admin" item.
+Users are reported as anonymous guests and signed-in accounts separately.
 
 ## Database Schema Key Points
 
 ### Tables
 - **rooms**: id, room_code (unique 8-char), name, point_scale, leader_id, created_at
 - **participants**: id, room_id, user_id (nullable), name, is_leader, is_active, joined_at
-- **stories**: id, room_id, title, description, is_active, final_average, created_at
+- **stories**: id, room_id, title, description, is_active, final_average, revealed_at, created_at
 - **votes**: id, story_id, participant_id, point_value, is_revealed, sentiment, created_at
+- **vote_receipts**: story_id, participant_id, voted_at (who has voted, never what; written by trigger)
 - **profiles**: id, user_id, display_name, created_at
+
+Stories also carry `revealed_at`. Rooms and participants are created only
+through `create_room()` and `join_room()`; see `docs/security-model.md` for
+every read and write rule.
 
 ### Key Relationships
 - Room has many participants (one marked as leader via `leader_id`)
@@ -304,7 +311,7 @@ if (user && isAuthenticated && linkingAttemptedRef.current !== user.id) {
 ### Important Columns
 - `is_active`: Boolean on stories and participants (soft delete pattern)
 - `is_revealed`: Boolean on votes (controls visibility)
-- `is_leader`: Boolean on participants (controls permissions)
+- `is_leader`: Boolean on participants (controls permissions; only database functions can set it)
 - `point_scale`: Enum 'fibonacci' | 't-shirt' on rooms
 
 ## Testing Patterns
@@ -371,9 +378,10 @@ All components install to `src/components/ui/` per components.json:17.
 ### Vote Privacy (CRITICAL)
 Vote privacy is enforced at multiple layers:
 1. **Database RLS**: enforced. `votes_select` is
-   `USING (is_revealed OR owns_participant(participant_id))`, so an unrevealed
-   `point_value` is readable only by the participant who cast it — from the REST
-   API, from Realtime, from anywhere. This works because `SessionGate` signs
+   `USING (owns_participant(participant_id) OR (is_revealed AND is_story_member(story_id)))`,
+   so an unrevealed `point_value` is readable only by the participant who cast
+   it, and revealed votes only by members of the room — from the REST API, from
+   Realtime, from anywhere. This works because `SessionGate` signs
    every visitor in anonymously before the first query, giving RLS an
    `auth.uid()` to key on. Revealing goes through the leader-only
    `reveal_votes()` function, because RLS grants per row and never per column.
@@ -386,8 +394,9 @@ Always use `filterVisibleVotes()` before displaying vote data to users.
 All room data (participants, stories, votes) updates in real-time via Supabase subscriptions. Components should rely on subscription hook data rather than manual re-fetching.
 
 ### Responsive Design
-- Voting buttons: 4 columns mobile, 8 columns desktop
-- Vote results: 2 columns mobile, 3 tablet, 4 desktop
+- Voting buttons: one fanned hand of overlapping cards at every width
+- Vote results: one fan of face-up cards that tightens to fit
+- Seats: face-down cards with a slight overlap, wrapping in a large room
 - Full-width buttons on mobile, inline on desktop
 - Flex layouts with wrap for participant status
 

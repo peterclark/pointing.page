@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { LandingPage } from "@/pages/LandingPage";
+import { CreateRoomFlow } from "@/components/CreateRoomFlow";
 import { ActiveRoomPage } from "@/pages/ActiveRoomPage";
 import { JoinRoomHandler } from "@/pages/JoinRoomHandler";
 import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
@@ -20,28 +21,6 @@ vi.mock("sonner", () => ({
     error: vi.fn(),
   },
   Toaster: () => null,
-}));
-
-// Mock the WavyBackground component (uses canvas which doesn't work in jsdom)
-vi.mock("@/components/ui/wavy-background", () => ({
-  WavyBackground: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="wavy-background" className={className}>
-      {children}
-    </div>
-  ),
-}));
-
-// Mock the TypewriterEffectSmooth component
-vi.mock("@/components/ui/typewriter-effect", () => ({
-  TypewriterEffectSmooth: ({ words }: { words: Array<{ text: string; className?: string }> }) => (
-    <div data-testid="typewriter-effect">
-      {words.map((word, idx) => (
-        <span key={idx} className={word.className}>
-          {word.text}{" "}
-        </span>
-      ))}
-    </div>
-  ),
 }));
 
 /**
@@ -104,7 +83,12 @@ describe("Room Creation Flow Integration", () => {
     // Create router with landing page
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/room/:roomCode", element: <ActiveRoomPage /> },
       ],
       { initialEntries: ["/"] }
@@ -116,10 +100,10 @@ describe("Room Creation Flow Integration", () => {
       </CommandPaletteProvider>
     );
 
-    // Step 1: User lands on page and clicks "Enter"
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    expect(enterButton).toBeInTheDocument();
-    fireEvent.click(enterButton);
+    // Step 1: User lands on page and clicks "Deal a new room"
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    expect(dealButton).toBeInTheDocument();
+    fireEvent.click(dealButton);
 
     // Step 2: Dialog opens with pre-filled room name
     await waitFor(() => {
@@ -143,28 +127,25 @@ describe("Room Creation Flow Integration", () => {
     await waitFor(() => {
       expect(queries.createRoom).toHaveBeenCalledWith(
         expect.stringMatching(/^[A-Z][a-z]+-[A-Z][a-z]+$/),
+        "Test User",
         "fibonacci"
-      );
-      expect(queries.joinRoom).toHaveBeenCalledWith(
-        "room-uuid",
-        null,
-        "Test User"
       );
     });
 
     // Verify localStorage was updated with participant name
     expect(localStorage.getItem("participant_name")).toBe("Test User");
-
-    // Verify participant_id was generated
-    const participantId = localStorage.getItem("participant_id");
-    expect(participantId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
   });
 
   it("validates room code format before attempting to join", async () => {
     // Create router with join handler
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/join/:roomCode", element: <JoinRoomHandler /> },
       ],
       { initialEntries: ["/join/invalid"] } // Invalid: too short
@@ -192,7 +173,12 @@ describe("Room Creation Flow Integration", () => {
     );
 
     const router = createMemoryRouter(
-      [{ path: "/", element: <LandingPage /> }],
+      [{ path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) }],
       { initialEntries: ["/"] }
     );
 
@@ -203,8 +189,8 @@ describe("Room Creation Flow Integration", () => {
     );
 
     // Open dialog
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     await waitFor(() => {
       expect(screen.getByText("Create a Room")).toBeInTheDocument();
@@ -250,7 +236,12 @@ describe("Join Room Flow Integration", () => {
 
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/join/:roomCode", element: <JoinRoomHandler /> },
         { path: "/room/:roomCode", element: <ActiveRoomPage /> },
       ],
@@ -278,7 +269,12 @@ describe("Join Room Flow Integration", () => {
 
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/join/:roomCode", element: <JoinRoomHandler /> },
       ],
       { initialEntries: ["/join/NOTFOUND"] } // Valid format but room doesn't exist
@@ -314,22 +310,6 @@ describe("localStorage Persistence", () => {
     vi.mocked(useAuth).mockReturnValue(mockAuthState({ userId: "user-123" }));
   });
 
-  it("generates participant_id once and persists across calls", () => {
-    // First call generates ID
-    const id1 = utils.getParticipantId();
-    expect(id1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-    expect(localStorage.getItem("participant_id")).toBe(id1);
-
-    // Second call returns same ID
-    const id2 = utils.getParticipantId();
-    expect(id2).toBe(id1);
-    expect(localStorage.getItem("participant_id")).toBe(id1);
-
-    // Verify only one entry in localStorage for participant_id
-    const keys = Object.keys(localStorage);
-    expect(keys.filter(k => k === "participant_id")).toHaveLength(1);
-  });
-
   it("pre-fills participant name from localStorage in create room dialog", async () => {
     // Set up existing participant name in localStorage
     localStorage.setItem("participant_name", "Returning User");
@@ -355,7 +335,12 @@ describe("localStorage Persistence", () => {
     });
 
     const router = createMemoryRouter(
-      [{ path: "/", element: <LandingPage /> }],
+      [{ path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) }],
       { initialEntries: ["/"] }
     );
 
@@ -366,8 +351,8 @@ describe("localStorage Persistence", () => {
     );
 
     // Open dialog
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     // Verify participant name is pre-filled
     await waitFor(() => {
@@ -459,7 +444,12 @@ describe("Form Validation", () => {
 
   it("disables point scale buttons until participant name is entered", async () => {
     const router = createMemoryRouter(
-      [{ path: "/", element: <LandingPage /> }],
+      [{ path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) }],
       { initialEntries: ["/"] }
     );
 
@@ -469,8 +459,8 @@ describe("Form Validation", () => {
       </CommandPaletteProvider>
     );
 
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     await waitFor(() => {
       expect(screen.getByText("Create a Room")).toBeInTheDocument();

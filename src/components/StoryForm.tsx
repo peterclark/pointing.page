@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { feltField, ivoryButton } from "@/lib/cards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,27 +69,33 @@ export function StoryForm({ roomId, onStoryCreated }: StoryFormProps) {
   };
 
   return (
-    <Card className="p-6">
-      <div className="text-center sm:text-left">
-        <h2 className="text-2xl font-semibold">Create a Story</h2>
-        <p className="text-muted-foreground mt-1">
-          Start a new voting session by adding a story
+    <section className="space-y-6" aria-labelledby="story-form-heading">
+      <div className="space-y-2">
+        <h2
+          id="story-form-heading"
+          className="font-display text-[2.5rem] leading-none sm:text-5xl"
+        >
+          Deal a story
+        </h2>
+        <p className="text-ivory/80">
+          Name what the team is estimating, then everyone picks a card.
         </p>
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Title Input */}
         <div className="space-y-2">
           <Label htmlFor="title">
-            Story Title <span className="text-destructive">*</span>
+            Story Title <span className="text-suit">*</span>
           </Label>
           <Input
             id="title"
             {...register("title")}
             disabled={isSubmitting}
             placeholder="Enter story title"
+            className={cn("h-14", feltField)}
           />
           {errors.title && (
-            <p className="text-sm text-destructive">{errors.title.message}</p>
+            <p className="text-sm text-gold">{errors.title.message}</p>
           )}
         </div>
 
@@ -101,6 +108,7 @@ export function StoryForm({ roomId, onStoryCreated }: StoryFormProps) {
             disabled={isSubmitting}
             placeholder="Enter story description or acceptance criteria (Cmd+Enter to submit)"
             rows={4}
+            className={cn("py-3", feltField)}
             onKeyDown={(e) => {
               // Submit form on Cmd+Enter or Ctrl+Enter
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -110,7 +118,7 @@ export function StoryForm({ roomId, onStoryCreated }: StoryFormProps) {
             }}
           />
           {errors.description && (
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-gold">
               {errors.description.message}
             </p>
           )}
@@ -122,12 +130,12 @@ export function StoryForm({ roomId, onStoryCreated }: StoryFormProps) {
           type="submit"
           size="lg"
           disabled={isSubmitting}
-          className="w-full"
+          className={cn("w-full", ivoryButton)}
           tabIndex={0}
         >
           {isSubmitting ? "Creating..." : "Start Voting"}
         </Button>
       </form>
-    </Card>
+    </section>
   );
 }

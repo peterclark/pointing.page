@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { revealVotes, clearActiveStory } from "@/lib/supabase/queries";
+import {
+  revealVotes,
+  clearActiveStory,
+  revoteStory,
+} from "@/lib/supabase/queries";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import { ChevronDoubleRightIcon } from "@heroicons/react/24/outline";
 
 interface LeaderControlsProps {
@@ -16,14 +20,15 @@ interface LeaderControlsProps {
  * Leader Controls Component
  *
  * Provides leader-only controls for the voting flow:
- * - Reveal Votes: Shows all participant votes (visible before reveal)
- * - Next Story: Clears active story and returns to story form (visible after reveal)
+ * - Flip all cards: Reveals all participant votes (visible before reveal)
+ * - Vote again: Starts a new round on the same story (visible after reveal)
+ * - Deal next story: Clears active story and returns to story form (visible after reveal)
  *
  * Features:
  * - Only visible to room leader
  * - Loading states during actions
  * - Error handling with toast notifications
- * - Primary button styling for Reveal, secondary for Next Story
+ * - Full-width buttons sized for thumbs on the card table
  */
 export function LeaderControls({
   roomId,
@@ -33,6 +38,7 @@ export function LeaderControls({
 }: LeaderControlsProps) {
   const [isRevealing, setIsRevealing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isRevoting, setIsRevoting] = useState(false);
 
   // Only render if user is the leader
   if (!isLeader) {
@@ -74,32 +80,62 @@ export function LeaderControls({
     }
   };
 
+  /**
+   * Starts a new round on a copy of the story, keeping this round's result
+   */
+  const handleVoteAgain = async () => {
+    setIsRevoting(true);
+    try {
+      await revoteStory(storyId);
+      toast.success("New round started");
+    } catch (_error) {
+      toast.error("Failed to start a new round. Please try again.");
+    } finally {
+      setIsRevoting(false);
+    }
+  };
+
   return (
-    <div className="flex gap-3 w-full sm:w-auto">
+    <div className="flex w-full gap-3">
       {!isRevealed ? (
-        // Before reveal: Show "Reveal Votes" button
+        // Before reveal: everyone's card turns over at once
         <Button
           onClick={handleRevealVotes}
           disabled={isRevealing}
           size="lg"
-          className="w-full sm:w-auto"
-          variant="default"
+          className="h-14 flex-1 rounded-2xl bg-suit text-lg font-extrabold text-white hover:bg-suit/90"
         >
           {isRevealing && <Loader2 className="h-4 w-4 animate-spin" />}
-          Reveal Votes
+          Flip all cards
         </Button>
       ) : (
-        // After reveal: Show "Next Story" button
-        <Button
-          onClick={handleNextStory}
-          disabled={isClearing}
-          size="lg"
-          className="w-full sm:w-auto"
-        >
-          {isClearing && <Loader2 className="h-4 w-4 animate-spin" />}
-          Next Story
-          <ChevronDoubleRightIcon />
-        </Button>
+        // After reveal: vote again on the same story, or move on
+        <>
+          <Button
+            onClick={handleVoteAgain}
+            disabled={isRevoting || isClearing}
+            size="lg"
+            variant="outline"
+            className="h-14 rounded-2xl border-2 border-ivory/55 bg-transparent px-5 text-base text-ivory hover:bg-ivory/10 hover:text-ivory"
+          >
+            {isRevoting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="h-4 w-4" />
+            )}
+            Vote again
+          </Button>
+          <Button
+            onClick={handleNextStory}
+            disabled={isClearing || isRevoting}
+            size="lg"
+            className="h-14 flex-1 rounded-2xl bg-ivory text-lg font-extrabold text-ink hover:bg-ivory/90"
+          >
+            {isClearing && <Loader2 className="h-4 w-4 animate-spin" />}
+            Deal next story
+            <ChevronDoubleRightIcon />
+          </Button>
+        </>
       )}
     </div>
   );
