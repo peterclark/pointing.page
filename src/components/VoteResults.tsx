@@ -8,6 +8,7 @@ import {
 } from "@/lib/utils";
 import { PlayingCard } from "@/components/PlayingCard";
 import { fanStyle, isRedCard } from "@/lib/cards";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface VoteResultsProps {
   votes: Tables<"votes">[];
@@ -26,11 +27,32 @@ interface VoteResultsProps {
  * - Sorted by point value (ascending)
  * - The fan tightens to fit narrow screens
  */
+const FAN = { tilt: 2, dip: 2 };
+
+// How far the outermost cards of a fan dip below its first row of pixels
+function fanDrop(count: number): number {
+  const offset = (count - 1) / 2;
+  return Math.round(offset * offset * FAN.dip);
+}
+
+// Splits items into as few rows as fit `max` per row, keeping rows even
+function splitIntoRows<T>(items: T[], max: number): T[][] {
+  const rowCount = Math.ceil(items.length / max);
+  const perRow = Math.ceil(items.length / rowCount);
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += perRow) {
+    rows.push(items.slice(i, i + perRow));
+  }
+  return rows;
+}
+
 export function VoteResults({
   votes,
   participants,
   pointScale,
 }: VoteResultsProps) {
+  const isMobile = useIsMobile();
+
   // Only show revealed votes
   const revealedVotes = votes.filter((vote) => vote.is_revealed);
 
@@ -101,6 +123,12 @@ export function VoteResults({
 
   // Sort votes by value
   const sortedVotes = sortVotesByValue(revealedVotes, pointScale);
+  // A phone fits about five readable cards across, so a big room is dealt
+  // in several shorter fans instead of one where every card is buried
+  const voteRows = splitIntoRows(
+    sortedVotes.map((vote, index) => ({ vote, index })),
+    isMobile ? 5 : 10
+  );
 
   // Lowest and highest real estimates, in scale order ("?" sorts last).
   const estimates = sortedVotes.filter((v) => v.point_value !== "?");
@@ -152,43 +180,52 @@ export function VoteResults({
       </div>
 
       {/* Everyone's card, face up, in a fan that tightens to fit */}
-      <ul className="flex justify-center px-2 pb-2" aria-label="Individual votes">
-        {sortedVotes.map((vote, index) => {
-          const participant = participantMap.get(vote.participant_id);
-          const isConsensus = isConsensusVote(
-            vote.point_value,
-            actualConsensusValue,
-            pointScale
-          );
+      <div role="group" aria-label="Individual votes" className="space-y-3">
+        {voteRows.map((row, rowIndex) => (
+          <ul
+            key={rowIndex}
+            className="flex justify-center px-2"
+            style={{ paddingBottom: 8 + fanDrop(row.length) }}
+          >
+            {row.map(({ vote, index }, indexInRow) => {
+              const participant = participantMap.get(vote.participant_id);
+              const isConsensus = isConsensusVote(
+                vote.point_value,
+                actualConsensusValue,
+                pointScale
+              );
 
-          // Only apply consensus highlighting if we have a valid consensus
-          const agrees = hasConsensus && vote.point_value !== "?" && isConsensus;
-          const isLast = index === sortedVotes.length - 1;
+              // Only apply consensus highlighting if we have a valid consensus
+              const agrees =
+                hasConsensus && vote.point_value !== "?" && isConsensus;
+              const isLast = indexInRow === row.length - 1;
 
-          return (
-            <li
-              key={vote.id}
-              data-consensus={agrees}
-              className={cn(
-                "relative h-[124px] min-w-6",
-                isLast ? "shrink-0 basis-[84px]" : "shrink basis-[84px]"
-              )}
-            >
-              <PlayingCard
-                value={vote.point_value}
-                red={isRedCard(index)}
-                highlighted={agrees}
-                style={fanStyle(index, sortedVotes.length, { tilt: 2, dip: 2 })}
-                className="fan-card absolute top-0 left-0 h-[118px] w-[84px]"
-              >
-                <span className="absolute inset-x-0 bottom-2 truncate px-1.5 text-center text-xs font-semibold text-ink">
-                  {participant?.name || "Unknown"}
-                </span>
-              </PlayingCard>
-            </li>
-          );
-        })}
-      </ul>
+              return (
+                <li
+                  key={vote.id}
+                  data-consensus={agrees}
+                  className={cn(
+                    "relative h-[124px] min-w-6",
+                    isLast ? "shrink-0 basis-[84px]" : "shrink basis-[84px]"
+                  )}
+                >
+                  <PlayingCard
+                    value={vote.point_value}
+                    red={isRedCard(index)}
+                    highlighted={agrees}
+                    style={fanStyle(indexInRow, row.length, FAN)}
+                    className="fan-card absolute top-0 left-0 h-[118px] w-[84px]"
+                  >
+                    <span className="absolute inset-x-0 bottom-2 truncate px-1.5 text-center text-xs font-semibold text-ink">
+                      {participant?.name || "Unknown"}
+                    </span>
+                  </PlayingCard>
+                </li>
+              );
+            })}
+          </ul>
+        ))}
+      </div>
 
       {hasConsensus && (
         <p className="flex items-center gap-3 text-sm text-ivory/85">
