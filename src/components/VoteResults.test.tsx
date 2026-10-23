@@ -380,6 +380,46 @@ describe("VoteResults", () => {
     });
   });
 
+  describe("gold card legend", () => {
+    const vote = (id: string, participant: string, value: string) => ({
+      id,
+      story_id: "story1",
+      participant_id: participant,
+      point_value: value,
+      is_revealed: true,
+      created_at: "2024-01-01T00:00:00Z",
+      sentiment: null,
+    });
+
+    it("names the Fibonacci range around the result", () => {
+      render(
+        <VoteResults
+          votes={[vote("v1", "p1", "3"), vote("v2", "p2", "5"), vote("v3", "p3", "8")]}
+          participants={mockParticipants}
+          pointScale="fibonacci"
+        />
+      );
+
+      expect(
+        screen.getByText("Gold cards are close to 5 (2 to 13).")
+      ).toBeInTheDocument();
+    });
+
+    it("names the T-shirt range around the result", () => {
+      render(
+        <VoteResults
+          votes={[vote("v1", "p1", "M"), vote("v2", "p2", "M"), vote("v3", "p3", "L")]}
+          participants={mockParticipants}
+          pointScale="t-shirt"
+        />
+      );
+
+      expect(
+        screen.getByText("Gold cards are close to M (S to L).")
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("rendering behavior", () => {
     it("does not render when no votes are revealed", () => {
       const votes: Tables<"votes">[] = [

@@ -429,10 +429,38 @@ export function calculateTshirtConsensus(votes: string[]): TshirtConsensus {
   return { mode, consensus: mode, outlierThreshold: 1 };
 }
 
+// How far along each scale a vote may sit from the result and still agree
+const CONSENSUS_SCALES = {
+  fibonacci: { values: ["1", "2", "3", "5", "8", "13", "21"], steps: 2 },
+  "t-shirt": { values: ["XS", "S", "M", "L", "XL", "XXL"], steps: 1 },
+} as const;
+
 /**
- * Checks if a vote is within consensus range
- * - For Fibonacci: within 1-2 steps of rounded average
- * - For T-shirt: within 1 step of mode
+ * The lowest and highest votes that still count as agreeing with the result
+ * - For Fibonacci: up to 2 steps either side of the rounded average
+ * - For T-shirt: 1 step either side of the mode
+ *
+ * @param consensus - The consensus value (number for Fibonacci, string for T-shirt)
+ * @param scale - The point scale type
+ * @returns The range, or null when the consensus is not on the scale
+ */
+export function consensusRange(
+  consensus: string | number,
+  scale: "fibonacci" | "t-shirt"
+): { low: string; high: string; lowIndex: number; highIndex: number } | null {
+  const { values, steps } = CONSENSUS_SCALES[scale];
+  const index = (values as readonly string[]).indexOf(String(consensus));
+  if (index === -1) {
+    return null;
+  }
+
+  const lowIndex = Math.max(0, index - steps);
+  const highIndex = Math.min(values.length - 1, index + steps);
+  return { low: values[lowIndex], high: values[highIndex], lowIndex, highIndex };
+}
+
+/**
+ * Checks if a vote is within consensus range (see consensusRange)
  *
  * @param vote - The vote value to check
  * @param consensus - The consensus value (number for Fibonacci, string for T-shirt)
@@ -444,48 +472,14 @@ export function isConsensusVote(
   consensus: string | number,
   scale: "fibonacci" | "t-shirt"
 ): boolean {
-  // "?" votes are never considered consensus
-  if (vote === "?") {
+  const range = consensusRange(consensus, scale);
+  const voteIndex = (CONSENSUS_SCALES[scale].values as readonly string[]).indexOf(vote);
+  // "?" and anything off the scale never count as agreeing
+  if (!range || voteIndex === -1) {
     return false;
   }
 
-  if (scale === "fibonacci") {
-    const voteNum = parseInt(vote, 10);
-    const consensusNum =
-      typeof consensus === "number"
-        ? consensus
-        : parseInt(consensus as string, 10);
-
-    if (isNaN(voteNum) || isNaN(consensusNum)) {
-      return false;
-    }
-
-    // Get index positions in Fibonacci sequence
-    const fibSequence = [1, 2, 3, 5, 8, 13, 21];
-    const voteIndex = fibSequence.indexOf(voteNum);
-    const consensusIndex = fibSequence.indexOf(consensusNum);
-
-    if (voteIndex === -1 || consensusIndex === -1) {
-      return false;
-    }
-
-    // Within 1-2 steps is consensus (green)
-    const steps = Math.abs(voteIndex - consensusIndex);
-    return steps <= 2;
-  } else {
-    // T-shirt scale
-    const sequence = ["XS", "S", "M", "L", "XL", "XXL"];
-    const voteIndex = sequence.indexOf(vote);
-    const consensusIndex = sequence.indexOf(consensus as string);
-
-    if (voteIndex === -1 || consensusIndex === -1) {
-      return false;
-    }
-
-    // Within 1 step is consensus (green)
-    const steps = Math.abs(voteIndex - consensusIndex);
-    return steps <= 1;
-  }
+  return voteIndex >= range.lowIndex && voteIndex <= range.highIndex;
 }
 
 /**

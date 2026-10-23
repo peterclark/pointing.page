@@ -175,7 +175,7 @@ calculateFibonacciConsensus(votes): { average, consensus, outlierThreshold }
 ```
 - Calculates numeric average
 - Returns rounded consensus value
-- Identifies outliers (votes outside 1 step of consensus)
+- Identifies outliers (votes more than 2 steps from consensus)
 
 **T-shirt Scale**:
 ```typescript
@@ -189,7 +189,7 @@ calculateTshirtConsensus(votes): { mode, consensus, outlierThreshold }
 ```typescript
 isConsensusVote(vote, consensus, scale): boolean
 ```
-- Returns true if vote is within 1 step of consensus
+- Returns true if vote is within range of consensus (2 steps on Fibonacci, 1 on T-shirt); `consensusRange()` gives the lowest and highest such vote for the legend
 - Used for the gold edge on revealed cards that agree with the result
 
 ### Optimistic UI Updates

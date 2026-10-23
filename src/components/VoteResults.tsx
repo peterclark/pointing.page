@@ -3,6 +3,7 @@ import {
   calculateFibonacciConsensus,
   calculateTshirtConsensus,
   cn,
+  consensusRange,
   isConsensusVote,
   sortVotesByValue,
 } from "@/lib/utils";
@@ -23,7 +24,7 @@ interface VoteResultsProps {
  * Features:
  * - The result as one oversized number, with its label, vote count and spread
  * - Everyone's card face up in a fan, named at the bottom of the card
- * - Gold edge on votes within one step of the consensus
+ * - Gold edge on votes close to the consensus, with a legend naming the range
  * - Sorted by point value (ascending)
  * - The fan tightens to fit narrow screens
  */
@@ -120,6 +121,8 @@ export function VoteResults({
       actualConsensusValue = result.consensus;
     }
   }
+
+  const goldRange = consensusRange(actualConsensusValue, pointScale);
 
   // Sort votes by value
   const sortedVotes = sortVotesByValue(revealedVotes, pointScale);
@@ -227,13 +230,14 @@ export function VoteResults({
         ))}
       </div>
 
-      {hasConsensus && (
+      {hasConsensus && goldRange && (
         <p className="flex items-center gap-3 text-sm text-ivory/85">
           <span
             aria-hidden="true"
             className="size-3.5 shrink-0 rounded shadow-[0_0_0_3px_var(--color-gold)]"
           />
-          Gold cards are within one step of the result.
+          Gold cards are close to {actualConsensusValue} ({goldRange.low} to{" "}
+          {goldRange.high}).
         </p>
       )}
     </section>
