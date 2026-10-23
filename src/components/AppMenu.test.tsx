@@ -20,7 +20,6 @@ import * as useAuthModule from "@/hooks/useAuth";
 // observable from the test body.
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  setTheme: vi.fn(),
   registerCommand: vi.fn(() => vi.fn()),
   showHelp: vi.fn(),
   openCreateRoomDialog: vi.fn(),
@@ -32,9 +31,6 @@ vi.mock("@/hooks/useAuth");
 vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router-dom")>()),
   useNavigate: () => mocks.navigate,
-}));
-vi.mock("@/components/theme-provider", () => ({
-  useTheme: () => ({ theme: "system", setTheme: mocks.setTheme }),
 }));
 vi.mock("@/hooks/useCommandPalette", () => ({
   useCommandPalette: () => ({
@@ -299,17 +295,6 @@ describe("AppMenu", () => {
       expect(mocks.openCreateRoomDialog).toHaveBeenCalled();
     });
 
-    it.each([
-      [/^Light/, "light"],
-      [/^Dark/, "dark"],
-      [/^System/, "system"],
-    ])("switches theme via %s", async (name, expected) => {
-      const click = await openMenu();
-      await click(name);
-
-      expect(mocks.setTheme).toHaveBeenCalledWith(expected);
-    });
-
     it("opens the keyboard shortcuts help", async () => {
       const click = await openMenu();
       await click(/^Keyboard shortcuts/);
@@ -385,7 +370,7 @@ describe("AppMenu", () => {
       const commands = registeredCommands();
 
       expect([...commands.keys()].sort()).toEqual(
-        ["?", "d", "h", "l", "p", "q", "r", "s", "t"].sort()
+        ["?", "h", "p", "q", "r", "s"].sort()
       );
     });
 
@@ -397,16 +382,6 @@ describe("AppMenu", () => {
       registeredCommands().get(key)!();
 
       expect(mocks.navigate).toHaveBeenCalledWith(path);
-    });
-
-    it.each([
-      ["l", "light"],
-      ["d", "dark"],
-      ["t", "system"],
-    ])("⌘K %s switches theme to %s", (key, expected) => {
-      registeredCommands().get(key)!();
-
-      expect(mocks.setTheme).toHaveBeenCalledWith(expected);
     });
 
     it("⌘K r opens the create-room dialog", () => {
@@ -440,9 +415,9 @@ describe("AppMenu", () => {
       );
       unmount();
 
-      // Nine commands registered, nine torn down — otherwise a remount would
+      // Six commands registered, six torn down — otherwise a remount would
       // stack duplicate handlers.
-      expect(cleanup).toHaveBeenCalledTimes(9);
+      expect(cleanup).toHaveBeenCalledTimes(6);
     });
   });
 
