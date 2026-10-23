@@ -22,28 +22,6 @@ vi.mock("sonner", () => ({
   Toaster: () => null,
 }));
 
-// Mock the WavyBackground component (uses canvas which doesn't work in jsdom)
-vi.mock("@/components/ui/wavy-background", () => ({
-  WavyBackground: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="wavy-background" className={className}>
-      {children}
-    </div>
-  ),
-}));
-
-// Mock the TypewriterEffectSmooth component
-vi.mock("@/components/ui/typewriter-effect", () => ({
-  TypewriterEffectSmooth: ({ words }: { words: Array<{ text: string; className?: string }> }) => (
-    <div data-testid="typewriter-effect">
-      {words.map((word, idx) => (
-        <span key={idx} className={word.className}>
-          {word.text}{" "}
-        </span>
-      ))}
-    </div>
-  ),
-}));
-
 /**
  * Integration Tests for Room Creation & Management Feature
  *
@@ -116,10 +94,10 @@ describe("Room Creation Flow Integration", () => {
       </CommandPaletteProvider>
     );
 
-    // Step 1: User lands on page and clicks "Enter"
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    expect(enterButton).toBeInTheDocument();
-    fireEvent.click(enterButton);
+    // Step 1: User lands on page and clicks "Deal a new room"
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    expect(dealButton).toBeInTheDocument();
+    fireEvent.click(dealButton);
 
     // Step 2: Dialog opens with pre-filled room name
     await waitFor(() => {
@@ -195,8 +173,8 @@ describe("Room Creation Flow Integration", () => {
     );
 
     // Open dialog
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     await waitFor(() => {
       expect(screen.getByText("Create a Room")).toBeInTheDocument();
@@ -342,8 +320,8 @@ describe("localStorage Persistence", () => {
     );
 
     // Open dialog
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     // Verify participant name is pre-filled
     await waitFor(() => {
@@ -445,8 +423,8 @@ describe("Form Validation", () => {
       </CommandPaletteProvider>
     );
 
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     await waitFor(() => {
       expect(screen.getByText("Create a Room")).toBeInTheDocument();

@@ -248,7 +248,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       await waitFor(() => {
         expect(screen.getByText(/waiting for the leader to start voting/i)).toBeInTheDocument();
         expect(
-          screen.getByText(/the leader will create a story/i)
+          screen.getByText(/the leader will deal a story/i)
         ).toBeInTheDocument();
         // Should NOT show story form
         expect(screen.queryByLabelText(/story title/i)).not.toBeInTheDocument();
@@ -277,7 +277,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
         expect(screen.getByText(mockStory.description!)).toBeInTheDocument();
 
         // Voting interface
-        expect(screen.getByText(/cast your vote/i)).toBeInTheDocument();
+        expect(screen.getByText(/your hand/i)).toBeInTheDocument();
 
         // Fibonacci buttons (1, 2, 3, 5, 8, 13, 21, ?)
         expect(screen.getByRole("button", { name: "1" })).toBeInTheDocument();
@@ -312,12 +312,12 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       renderPage();
 
       await waitFor(() => {
-        // Should show participant count
-        expect(screen.getByText(/participants \(2\)/i)).toBeInTheDocument();
+        // Should show how many of the two have a card down
+        expect(screen.getByText("/2")).toBeInTheDocument();
 
         // Should show both participants
-        expect(screen.getByText(/alice/i)).toBeInTheDocument();
-        expect(screen.getByText(/bob/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/alice/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/bob/i).length).toBeGreaterThan(0);
       });
     });
 
@@ -336,7 +336,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /reveal votes/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /flip all cards/i })).toBeInTheDocument();
       });
     });
 
@@ -356,10 +356,10 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
 
       await waitFor(() => {
         // Voting interface should be visible
-        expect(screen.getByText(/cast your vote/i)).toBeInTheDocument();
+        expect(screen.getByText(/your hand/i)).toBeInTheDocument();
         // But no reveal button for non-leader
         expect(
-          screen.queryByRole("button", { name: /reveal votes/i })
+          screen.queryByRole("button", { name: /flip all cards/i })
         ).not.toBeInTheDocument();
       });
     });
@@ -392,7 +392,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
         ).toBeInTheDocument();
 
         // Should NOT show voting buttons anymore
-        expect(screen.queryByText(/cast your vote/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/your hand/i)).not.toBeInTheDocument();
       });
     });
 
@@ -416,7 +416,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
         expect(screen.getByRole("button", { name: /next story/i })).toBeInTheDocument();
         // Should NOT show reveal button anymore
         expect(
-          screen.queryByRole("button", { name: /reveal votes/i })
+          screen.queryByRole("button", { name: /flip all cards/i })
         ).not.toBeInTheDocument();
       });
     });
@@ -496,7 +496,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
         expect(button8).not.toHaveClass("ring-2");
 
         // ParticipantStatus should show Bob as voted, but not his value
-        expect(screen.getByText(/bob/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/bob/i).length).toBeGreaterThan(0);
       });
     });
 
@@ -515,13 +515,12 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       });
 
       const mockVote1 = createMockVote({
-        participant_id: "user-123",
         point_value: "5",
         is_revealed: true,
       });
       const mockVote2 = createMockVote({
         id: "vote-456",
-        participant_id: "user-456",
+        participant_id: "p2",
         point_value: "8",
         is_revealed: true,
       });
@@ -544,8 +543,8 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
         ).toBeInTheDocument();
 
         // Both participants should be visible
-        expect(screen.getByText(/alice/i)).toBeInTheDocument();
-        expect(screen.getByText(/bob/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/alice/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/bob/i).length).toBeGreaterThan(0);
       });
     });
 
@@ -607,7 +606,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       const { rerender } = renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText(/participants \(1\)/i)).toBeInTheDocument();
+        expect(screen.getByText("/1")).toBeInTheDocument();
       });
 
       // Simulate real-time update - new participant joins
@@ -634,8 +633,8 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/participants \(2\)/i)).toBeInTheDocument();
-        expect(screen.getByText(/bob/i)).toBeInTheDocument();
+        expect(screen.getByText("/2")).toBeInTheDocument();
+        expect(screen.getAllByText(/bob/i).length).toBeGreaterThan(0);
       });
     });
 
@@ -657,7 +656,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       const { rerender } = renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText(/cast your vote/i)).toBeInTheDocument();
+        expect(screen.getByText(/your hand/i)).toBeInTheDocument();
       });
 
       // Simulate reveal update
@@ -686,7 +685,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
         expect(
           screen.getByText(/consensus|average|most common/i)
         ).toBeInTheDocument();
-        expect(screen.queryByText(/cast your vote/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/your hand/i)).not.toBeInTheDocument();
       });
     });
   });

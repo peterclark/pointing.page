@@ -64,7 +64,8 @@ Configured in both vite.config.ts:10-12 and tsconfig.json:12-14:
 - **Base Color**: slate (components.json:9)
 - **Utility Function**: `cn()` in src/lib/utils.ts combines clsx and tailwind-merge for conditional classes
 - **Responsive Design**: Mobile-first approach with sm:, md:, lg: breakpoints
-- **Grid Layouts**: Used for voting buttons and result cards with responsive column counts
+- **Card Table Theme**: The landing and room pages call `useCardTable()`, which puts `felt dark` on `<body>`; `.felt` in `src/index.css` tints the shadcn palette green. Colors `felt`, `ivory`, `ink`, `suit`, `gold` and fonts `font-display`, `font-card` are theme tokens
+- **Fanned Cards**: `PlayingCard` draws a card face or back; `fanStyle()` in `src/lib/cards.ts` with the `.fan-card` class tilts it into a fan. Fans sit in shrinking flex slots so they overlap more on narrow screens instead of wrapping
 
 ### Component Patterns
 shadcn/ui components follow these patterns:
@@ -189,7 +190,7 @@ calculateTshirtConsensus(votes): { mode, consensus, outlierThreshold }
 isConsensusVote(vote, consensus, scale): boolean
 ```
 - Returns true if vote is within 1 step of consensus
-- Used for green (consensus) vs yellow (outlier) border highlighting
+- Used for the gold edge on revealed cards that agree with the result
 
 ### Optimistic UI Updates
 **Location**: `src/components/VotingButtons.tsx`
@@ -385,8 +386,9 @@ Always use `filterVisibleVotes()` before displaying vote data to users.
 All room data (participants, stories, votes) updates in real-time via Supabase subscriptions. Components should rely on subscription hook data rather than manual re-fetching.
 
 ### Responsive Design
-- Voting buttons: 4 columns mobile, 8 columns desktop
-- Vote results: 2 columns mobile, 3 tablet, 4 desktop
+- Voting buttons: one fanned hand of overlapping cards at every width
+- Vote results: one fan of face-up cards that tightens to fit
+- Seats: face-down cards with a slight overlap, wrapping in a large room
 - Full-width buttons on mobile, inline on desktop
 - Flex layouts with wrap for participant status
 

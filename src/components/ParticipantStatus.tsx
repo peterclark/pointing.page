@@ -1,5 +1,4 @@
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle } from "lucide-react";
+import { PlayingCard } from "@/components/PlayingCard";
 import type { Tables } from "@/lib/supabase/client";
 
 interface ParticipantStatusProps {
@@ -20,13 +19,13 @@ interface ParticipantStatusProps {
 /**
  * Participant Status Component
  *
- * Shows all active participants with their voting status.
+ * Shows each participant as a seat at the table with their card.
  * Features:
- * - Real-time display of who has voted, without revealing what
+ * - A face-down card once someone has voted, without revealing what
+ * - An empty dashed slot while they are still choosing
  * - Leader indicator with crown emoji
- * - Shows point values after reveal
- * - Responsive layout (wraps on mobile)
- * - Visual icons for voted/not voted status
+ * - Shows point values face up after reveal
+ * - Cards overlap slightly and wrap onto more rows in a large room
  */
 export function ParticipantStatus({
   participants,
@@ -38,38 +37,46 @@ export function ParticipantStatus({
   const voteMap = new Map(votes.map((vote) => [vote.participant_id, vote]));
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      {participants.map((participant) => {
+    <ul className="flex flex-wrap justify-center gap-y-4 pl-2">
+      {participants.map((participant, index) => {
         const vote = voteMap.get(participant.id);
         // Union with the votes we can see, as a floor. `votes` is already
         // RLS-filtered to your own plus anything revealed, so this can never
         // surface a status the viewer was not entitled to — but it keeps your
-        // own pill lit if receipts are unavailable, which happens in a Netlify
+        // own card down if receipts are unavailable, which happens in a Netlify
         // deploy preview (new client, production database, migration not yet
         // applied) and briefly on merge before the migration lands.
         const hasVoted = votedParticipantIds.has(participant.id) || !!vote;
+        const shownValue = isRevealed && vote ? vote.point_value : undefined;
 
         return (
-          <Badge
+          <li
             key={participant.id}
-            variant={hasVoted ? "default" : "outline"}
-            className="gap-1.5 py-1.5 px-3"
+            data-voted={hasVoted}
+            className="-ml-2 flex w-[72px] flex-col items-center gap-1.5"
+            style={{ zIndex: index }}
           >
-            {hasVoted ? (
-              <CheckCircle2 className="h-4 w-4" />
+            {shownValue !== undefined ? (
+              <PlayingCard value={shownValue} className="h-[100px] w-[72px]" />
+            ) : hasVoted ? (
+              <PlayingCard className="h-[100px] w-[72px]" />
             ) : (
-              <Circle className="h-4 w-4" />
+              <div className="h-[100px] w-[72px] rounded-[10px] border-2 border-dashed border-ivory/40 bg-felt-deep/60" />
             )}
-            <span>
-              {participant.is_leader && <span className="mr-1">👑</span>}
-              {participant.name}
-              {isRevealed && vote && (
-                <span className="ml-1.5 font-bold">{vote.point_value}</span>
+            <span className="max-w-full truncate text-[13px] font-semibold">
+              {participant.is_leader && (
+                <span className="mr-0.5" aria-label="Leader">
+                  👑
+                </span>
               )}
+              {participant.name}
+              <span className="sr-only">
+                {hasVoted ? ", card down" : ", still choosing"}
+              </span>
             </span>
-          </Badge>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
