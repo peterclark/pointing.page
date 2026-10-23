@@ -213,7 +213,7 @@ describe("Account Linking Integration", () => {
 
     // Verify navigation to profile page
     await waitFor(() => {
-      expect(screen.getByText(/create account/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /take a seat/i })).toBeInTheDocument();
     });
   });
 

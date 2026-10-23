@@ -15,12 +15,12 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { User } from "@supabase/supabase-js";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoginForm } from "@/components/login-form";
 import { CurrentUserAvatar } from "@/components/current-user-avatar";
+import { PlayingCard } from "@/components/PlayingCard";
 import { profileUpdateSchema, type ProfileUpdateFormData } from "@/lib/schemas";
 import {
   getProfile,
@@ -28,17 +28,18 @@ import {
   updateProfile,
 } from "@/lib/supabase/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { useCardTable } from "@/hooks/useCardTable";
 import {
   getParticipantName,
   saveParticipantName,
 } from "@/lib/utils";
 import { toast } from "sonner";
-import Header from "@/components/Header";
 
 /**
  * Profile page with conditional rendering based on auth state
  */
 export function ProfilePage() {
+  useCardTable();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -92,19 +93,11 @@ export function ProfilePage() {
   }, [user, isAuthenticated]);
 
   if (isAuthLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 flex justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
+    return <StatusMessage>Loading...</StatusMessage>;
   }
 
   if (isLinking) {
-    return (
-      <div className="container mx-auto px-4 py-8 flex justify-center">
-        <p className="text-muted-foreground">Setting up your account...</p>
-      </div>
-    );
+    return <StatusMessage>Setting up your account...</StatusMessage>;
   }
 
   if (!isAuthenticated) {
@@ -123,25 +116,67 @@ export function ProfilePage() {
 }
 
 /**
+ * The felt page with the wordmark on top, shared by every state of this page
+ */
+function TablePage({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-dvh flex-col px-6 pt-4 pb-10">
+      <p className="font-display flex h-11 items-center justify-center text-2xl">
+        Pointing<span className="text-suit">.</span>page
+      </p>
+      <main className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center gap-8">
+        {children}
+      </main>
+    </div>
+  );
+}
+
+function StatusMessage({ children }: { children: React.ReactNode }) {
+  return (
+    <TablePage>
+      <p className="text-center text-ivory/70">{children}</p>
+    </TablePage>
+  );
+}
+
+// Matches the room code input on the landing page
+const feltInput =
+  "h-13 rounded-2xl border-2 border-ivory/30 bg-felt-deep/40 px-4 text-base text-ivory placeholder:text-ivory/50";
+
+/**
  * Social authentication view for unauthenticated users
  */
 function UnauthenticatedView() {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <Header />
-      <Card className="p-6 mt-6">
-        <div className="text-center sm:text-left">
-          <h2 className="text-2xl font-semibold">Create Account</h2>
-          <p className="text-muted-foreground mt-1">
-            Sign in with Google or Github to get started
-          </p>
-        </div>
+    <TablePage>
+      {/* A card face down and one turned up, purely decorative */}
+      <div aria-hidden="true" className="relative mx-auto h-[150px] w-[180px]">
+        <PlayingCard
+          className="absolute top-2 left-4 h-[132px] w-[94px] -rotate-8"
+        />
+        <PlayingCard
+          value="?"
+          red
+          className="absolute top-0 right-4 h-[132px] w-[94px] rotate-6"
+        />
+      </div>
 
-        <div className="mt-6">
-          <LoginForm />
-        </div>
-      </Card>
-    </div>
+      <div className="space-y-3 text-center">
+        <h1 className="font-display text-[2.5rem] leading-none sm:text-5xl">
+          Take a seat.
+        </h1>
+        <p className="text-balance text-ivory/80">
+          Sign in with Google or GitHub to keep your name and rooms on every
+          device.
+        </p>
+      </div>
+
+      <LoginForm />
+
+      <p className="text-center text-sm text-ivory/60">
+        No account needed to play. You can keep going as a guest.
+      </p>
+    </TablePage>
   );
 }
 
@@ -209,72 +244,64 @@ function AuthenticatedView({
   };
 
   if (isLoadingProfile) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-md">
-        <p className="text-muted-foreground text-center">Loading profile...</p>
-      </div>
-    );
+    return <StatusMessage>Loading profile...</StatusMessage>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <Header />
-      <Card className="p-6 mt-6">
-        {/* User Avatar */}
-        <div className="flex justify-center mb-6">
-          <CurrentUserAvatar />
+    <TablePage>
+      <div className="flex flex-col items-center gap-4 text-center">
+        <CurrentUserAvatar className="size-20 text-2xl font-extrabold shadow-[0_6px_14px_rgba(0,0,0,0.35)] ring-4 ring-ivory *:data-[slot=avatar-fallback]:bg-ivory *:data-[slot=avatar-fallback]:text-ink" />
+        <div className="space-y-2">
+          <h1 className="font-display text-[2.5rem] leading-none sm:text-5xl">
+            Profile
+          </h1>
+          <p className="text-ivory/80">The name your team sees at the table</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Name Input (Editable) */}
+        <div className="space-y-2">
+          <Label htmlFor="profile-name">
+            Name <span className="text-suit">*</span>
+          </Label>
+          <Input
+            id="profile-name"
+            {...register("name")}
+            disabled={isSubmitting}
+            placeholder="Enter your name"
+            className={feltInput}
+          />
+          {errors.name && (
+            <p className="text-sm text-gold">{errors.name.message}</p>
+          )}
         </div>
 
-        <div className="text-center sm:text-left">
-          <h2 className="text-2xl font-semibold">Profile</h2>
-          <p className="text-muted-foreground mt-1">
-            Manage your account settings
+        {/* Email Display (Read-only) */}
+        <div className="space-y-2">
+          <Label htmlFor="email-display">Email</Label>
+          <Input
+            id="email-display"
+            type="email"
+            value={user.email || ""}
+            disabled
+            className={feltInput}
+          />
+          <p className="text-xs text-ivory/60">
+            Email cannot be changed after verification
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
-          {/* Name Input (Editable) */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-name">
-              Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="profile-name"
-              {...register("name")}
-              disabled={isSubmitting}
-              placeholder="Enter your name"
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-
-          {/* Email Display (Read-only) */}
-          <div className="space-y-2">
-            <Label htmlFor="email-display">Email</Label>
-            <Input
-              id="email-display"
-              type="email"
-              value={user.email || ""}
-              disabled
-              className="bg-muted"
-            />
-            <p className="text-xs text-muted-foreground">
-              Email cannot be changed after verification
-            </p>
-          </div>
-
-          {/* Save Button */}
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isSubmitting}
-            className="w-full"
-          >
-            {isSubmitting ? "Saving..." : "Save Changes"}
-          </Button>
-        </form>
-      </Card>
-    </div>
+        {/* Save Button */}
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isSubmitting}
+          className="h-14 w-full rounded-2xl bg-ivory text-lg font-extrabold text-ink hover:bg-ivory/90"
+        >
+          {isSubmitting ? "Saving..." : "Save Changes"}
+        </Button>
+      </form>
+    </TablePage>
   );
 }
