@@ -89,7 +89,7 @@ describe("ParticipantStatus", () => {
     expect(bobBadge?.textContent).not.toContain("👑");
   });
 
-  it("shows checkmark icon for participants who voted", () => {
+  it("shows a face-down card for participants who voted", () => {
     const { container } = render(
       <ParticipantStatus
         participants={mockParticipants}
@@ -100,9 +100,9 @@ describe("ParticipantStatus", () => {
     );
 
     // Alice and Carol voted, Bob did not
-    // We can check for the presence of CheckCircle2 vs Circle icons
-    const badges = container.querySelectorAll('[class*="gap-1.5"]');
-    expect(badges.length).toBe(3);
+    const seats = container.querySelectorAll("[data-voted]");
+    expect(seats.length).toBe(3);
+    expect(container.querySelectorAll('[data-voted="true"]').length).toBe(2);
   });
 
   it("hides point values before reveal", () => {
@@ -210,13 +210,13 @@ describe("ParticipantStatus", () => {
     );
 
     const badge = (name: RegExp) =>
-      screen.getByText(name).closest("[class*='gap-1.5']");
+      screen.getByText(name).closest("[data-voted]");
 
-    expect(badge(/alice/i)?.querySelector(".lucide-circle-check")).toBeTruthy();
-    expect(badge(/carol/i)?.querySelector(".lucide-circle-check")).toBeTruthy();
+    expect(badge(/alice/i)).toHaveAttribute("data-voted", "true");
+    expect(badge(/carol/i)).toHaveAttribute("data-voted", "true");
     // Bob gets the hollow circle, not the tick.
-    expect(badge(/bob/i)?.querySelector(".lucide-circle-check")).toBeFalsy();
-    expect(badge(/bob/i)?.querySelector(".lucide-circle")).toBeTruthy();
+    expect(badge(/bob/i)).toHaveAttribute("data-voted", "false");
+    expect(badge(/bob/i)).toHaveAttribute("data-voted", "false");
   });
 
   it("does not leak an estimate just because someone has voted", () => {
@@ -272,11 +272,11 @@ describe("ParticipantStatus", () => {
     );
 
     const badge = (name: RegExp) =>
-      screen.getByText(name).closest("[class*='gap-1.5']");
+      screen.getByText(name).closest("[data-voted]");
 
-    expect(badge(/alice/i)?.querySelector(".lucide-circle-check")).toBeTruthy();
+    expect(badge(/alice/i)).toHaveAttribute("data-voted", "true");
     // Bob and Carol are still unknown, which is the honest answer.
-    expect(badge(/bob/i)?.querySelector(".lucide-circle-check")).toBeFalsy();
+    expect(badge(/bob/i)).toHaveAttribute("data-voted", "false");
     // And the fallback still leaks no estimate.
     expect(screen.queryByText("5")).not.toBeInTheDocument();
   });

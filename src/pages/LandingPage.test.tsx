@@ -19,28 +19,6 @@ vi.mock("@/components/CreateRoomDialog", () => ({
   ),
 }));
 
-// Mock the WavyBackground component (uses canvas which doesn't work in jsdom)
-vi.mock("@/components/ui/wavy-background", () => ({
-  WavyBackground: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="wavy-background" className={className}>
-      {children}
-    </div>
-  ),
-}));
-
-// Mock the TypewriterEffectSmooth component
-vi.mock("@/components/ui/typewriter-effect", () => ({
-  TypewriterEffectSmooth: ({ words }: { words: Array<{ text: string; className?: string }> }) => (
-    <div data-testid="typewriter-effect">
-      {words.map((word, idx) => (
-        <span key={idx} className={word.className}>
-          {word.text}{" "}
-        </span>
-      ))}
-    </div>
-  ),
-}));
-
 // Helper to render LandingPage with Router and CommandPaletteProvider
 function renderLandingPage() {
   return render(
@@ -77,18 +55,18 @@ describe("LandingPage", () => {
     expect(screen.getByText("joining")).toBeInTheDocument();
   });
 
-  it("renders enter button", () => {
+  it("renders deal a new room button", () => {
     renderLandingPage();
     expect(
-      screen.getByRole("button", { name: /enter/i })
+      screen.getByRole("button", { name: /deal a new room/i })
     ).toBeInTheDocument();
   });
 
-  it("opens dialog when enter button is clicked", () => {
+  it("opens dialog when deal a new room is clicked", () => {
     renderLandingPage();
 
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     const dialog = screen.getByTestId("create-room-dialog");
     expect(dialog).toHaveAttribute("data-open", "true");
@@ -98,8 +76,8 @@ describe("LandingPage", () => {
     renderLandingPage();
 
     // Open dialog
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     // Close dialog
     const closeButton = screen.getByRole("button", { name: /close dialog/i });

@@ -20,14 +20,15 @@ interface LeaderControlsProps {
  * Leader Controls Component
  *
  * Provides leader-only controls for the voting flow:
- * - Reveal Votes: Shows all participant votes (visible before reveal)
- * - Next Story: Clears active story and returns to story form (visible after reveal)
+ * - Flip all cards: Reveals all participant votes (visible before reveal)
+ * - Vote again: Starts a new round on the same story (visible after reveal)
+ * - Deal next story: Clears active story and returns to story form (visible after reveal)
  *
  * Features:
  * - Only visible to room leader
  * - Loading states during actions
  * - Error handling with toast notifications
- * - Primary button styling for Reveal, secondary for Next Story
+ * - Full-width buttons sized for thumbs on the card table
  */
 export function LeaderControls({
   roomId,
@@ -95,18 +96,17 @@ export function LeaderControls({
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full sm:w-auto sm:flex-row">
+    <div className="flex w-full gap-3">
       {!isRevealed ? (
-        // Before reveal: Show "Reveal Votes" button
+        // Before reveal: everyone's card turns over at once
         <Button
           onClick={handleRevealVotes}
           disabled={isRevealing}
           size="lg"
-          className="w-full sm:w-auto"
-          variant="default"
+          className="h-14 flex-1 rounded-2xl bg-suit text-lg font-extrabold text-white hover:bg-suit/90"
         >
           {isRevealing && <Loader2 className="h-4 w-4 animate-spin" />}
-          Reveal Votes
+          Flip all cards
         </Button>
       ) : (
         // After reveal: vote again on the same story, or move on
@@ -116,23 +116,23 @@ export function LeaderControls({
             disabled={isRevoting || isClearing}
             size="lg"
             variant="outline"
-            className="w-full sm:w-auto"
+            className="h-14 rounded-2xl border-2 border-ivory/55 bg-transparent px-5 text-base text-ivory hover:bg-ivory/10 hover:text-ivory"
           >
             {isRevoting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <RotateCcw className="h-4 w-4" />
             )}
-            Vote Again
+            Vote again
           </Button>
           <Button
             onClick={handleNextStory}
             disabled={isClearing || isRevoting}
             size="lg"
-            className="w-full sm:w-auto"
+            className="h-14 flex-1 rounded-2xl bg-ivory text-lg font-extrabold text-ink hover:bg-ivory/90"
           >
             {isClearing && <Loader2 className="h-4 w-4 animate-spin" />}
-            Next Story
+            Deal next story
             <ChevronDoubleRightIcon />
           </Button>
         </>

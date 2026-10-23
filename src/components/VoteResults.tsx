@@ -1,13 +1,13 @@
-import { Card, CardContent } from "@/components/ui/card";
 import type { Tables } from "@/lib/supabase/client";
 import {
   calculateFibonacciConsensus,
   calculateTshirtConsensus,
+  cn,
   isConsensusVote,
-  prefersReducedMotion,
   sortVotesByValue,
 } from "@/lib/utils";
-import { SparklesCore } from "./ui/sparkles";
+import { PlayingCard } from "@/components/PlayingCard";
+import { fanStyle, isRedCard } from "@/lib/cards";
 
 interface VoteResultsProps {
   votes: Tables<"votes">[];
@@ -20,12 +20,11 @@ interface VoteResultsProps {
  *
  * Displays revealed votes with consensus highlighting.
  * Features:
- * - Prominent consensus/average display at top
- * - Individual vote cards with participant names
- * - Green borders for consensus votes (within threshold)
- * - Yellow borders for outlier votes
+ * - The result as one oversized number, with its label, vote count and spread
+ * - Everyone's card face up in a fan, named at the bottom of the card
+ * - Gold edge on votes within one step of the consensus
  * - Sorted by point value (ascending)
- * - Mobile-responsive grid layout
+ * - The fan tightens to fit narrow screens
  */
 export function VoteResults({
   votes,
@@ -103,38 +102,58 @@ export function VoteResults({
   // Sort votes by value
   const sortedVotes = sortVotesByValue(revealedVotes, pointScale);
 
-  return (
-    <div className="space-y-6">
-      {/* Consensus Card */}
-      <Card className="p-0">
-        <CardContent className="p-2 text-center">
-          <div className="h-36 relative w-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-xl">
-            {!prefersReducedMotion() && (
-              <div className="w-full absolute inset-0 h-screen">
-                <SparklesCore
-                  id="tsparticlesfullpage"
-                  background="transparent"
-                  minSize={0.6}
-                  maxSize={1.4}
-                  particleDensity={100}
-                  className="w-full h-full"
-                  particleColor="#FFFFFF"
-                />
-              </div>
-            )}
-            <h1 className="md:text-7xl text-3xl lg:text-6xl font-bold text-center text-white relative z-20">
-              <div className="text-6xl font-bold">{consensusDisplayValue}</div>
-              <div className="text-sm text-muted-foreground mt-2">
-                {consensusLabel}
-              </div>
-            </h1>
-          </div>
-        </CardContent>
-      </Card>
+  // Lowest and highest real estimates, in scale order ("?" sorts last).
+  const estimates = sortedVotes.filter((v) => v.point_value !== "?");
+  const spread =
+    estimates.length > 1 &&
+    estimates[0].point_value !== estimates[estimates.length - 1].point_value
+      ? `${estimates[0].point_value} to ${estimates[estimates.length - 1].point_value}`
+      : null;
 
-      {/* Individual Votes Grid */}
-      <div className="flex flex-wrap gap-4">
-        {sortedVotes.map((vote) => {
+  const hasConsensus = consensusDisplayValue !== "No Consensus";
+  const headline = String(consensusDisplayValue);
+
+  return (
+    <section aria-label="Results" className="space-y-8">
+      <div className="flex items-start gap-6">
+        <div
+          data-testid="result-headline"
+          className={cn(
+            "font-card font-extrabold leading-[0.85] tracking-tighter",
+            headline.length > 4
+              ? "text-5xl sm:text-6xl"
+              : "text-[9rem] sm:text-[11rem]"
+          )}
+        >
+          {headline}
+        </div>
+        <dl className="flex flex-col gap-3 pt-3">
+          <div>
+            <dt className="text-xs font-semibold tracking-[0.15em] text-ivory/65 uppercase">
+              Result
+            </dt>
+            <dd className="text-2xl font-extrabold">{consensusLabel}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold tracking-[0.15em] text-ivory/65 uppercase">
+              Votes
+            </dt>
+            <dd className="text-2xl font-extrabold">{revealedVotes.length}</dd>
+          </div>
+          {spread && (
+            <div>
+              <dt className="text-xs font-semibold tracking-[0.15em] text-ivory/65 uppercase">
+                Spread
+              </dt>
+              <dd className="text-2xl font-extrabold">{spread}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+
+      {/* Everyone's card, face up, in a fan that tightens to fit */}
+      <ul className="flex justify-center px-2 pb-2" aria-label="Individual votes">
+        {sortedVotes.map((vote, index) => {
           const participant = participantMap.get(vote.participant_id);
           const isConsensus = isConsensusVote(
             vote.point_value,
@@ -143,31 +162,43 @@ export function VoteResults({
           );
 
           // Only apply consensus highlighting if we have a valid consensus
-          const showHighlighting =
-            consensusDisplayValue !== "No Consensus" &&
-            vote.point_value !== "?";
+          const agrees = hasConsensus && vote.point_value !== "?" && isConsensus;
+          const isLast = index === sortedVotes.length - 1;
 
           return (
-            <Card
+            <li
               key={vote.id}
-              className={
-                showHighlighting
-                  ? isConsensus
-                    ? "border-2 border-green-500 py-4 flex-1 max-w-25"
-                    : "border-2 border-yellow-500 py-4 flex-1 max-w-25"
-                  : ""
-              }
+              data-consensus={agrees}
+              className={cn(
+                "relative h-[124px] min-w-6",
+                isLast ? "shrink-0 basis-[84px]" : "shrink basis-[84px]"
+              )}
             >
-              <CardContent className="truncate">
-                <div className="text-3xl font-bold">{vote.point_value}</div>
-                <span className="text-xs font-light truncate">
+              <PlayingCard
+                value={vote.point_value}
+                red={isRedCard(index)}
+                highlighted={agrees}
+                style={fanStyle(index, sortedVotes.length, { tilt: 2, dip: 2 })}
+                className="fan-card absolute top-0 left-0 h-[118px] w-[84px]"
+              >
+                <span className="absolute inset-x-0 bottom-2 truncate px-1.5 text-center text-xs font-semibold text-ink">
                   {participant?.name || "Unknown"}
                 </span>
-              </CardContent>
-            </Card>
+              </PlayingCard>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ul>
+
+      {hasConsensus && (
+        <p className="flex items-center gap-3 text-sm text-ivory/85">
+          <span
+            aria-hidden="true"
+            className="size-3.5 shrink-0 rounded shadow-[0_0_0_3px_var(--color-gold)]"
+          />
+          Gold cards are within one step of the result.
+        </p>
+      )}
+    </section>
   );
 }

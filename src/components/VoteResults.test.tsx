@@ -78,8 +78,8 @@ describe("VoteResults", () => {
       // Check for consensus label
       expect(screen.getByText("Consensus")).toBeInTheDocument();
 
-      // Check for consensus value in the consensus card (text-6xl)
-      const consensusCard = container.querySelector(".text-6xl");
+      // Check for consensus value in the result headline
+      const consensusCard = container.querySelector('[data-testid="result-headline"]');
       expect(consensusCard).toHaveTextContent("5");
     });
 
@@ -123,12 +123,12 @@ describe("VoteResults", () => {
       );
 
       // Average of 3, 5, 8 is 5.3
-      const consensusCard = container.querySelector(".text-6xl");
+      const consensusCard = container.querySelector('[data-testid="result-headline"]');
       expect(consensusCard).toHaveTextContent("5.3");
       expect(screen.getByText("Average")).toBeInTheDocument();
     });
 
-    it("highlights consensus votes with green border", () => {
+    it("highlights consensus votes with a gold edge", () => {
       const votes: Tables<"votes">[] = [
         {
           id: "v1",
@@ -158,12 +158,12 @@ describe("VoteResults", () => {
         />
       );
 
-      // Both cards should have green border (consensus)
-      const cards = container.querySelectorAll(".border-green-500");
+      // Both cards should have a gold edge (consensus)
+      const cards = container.querySelectorAll('[data-consensus="true"]');
       expect(cards.length).toBe(2);
     });
 
-    it("highlights outlier votes with yellow border", () => {
+    it("leaves outlier votes without a gold edge", () => {
       const votes: Tables<"votes">[] = [
         {
           id: "v1",
@@ -196,7 +196,7 @@ describe("VoteResults", () => {
       // Average is 7, closest Fibonacci is 8
       // 1 is 4 steps away (outlier - yellow)
       // 13 is 2 steps away (consensus - green)
-      const yellowCards = container.querySelectorAll(".border-yellow-500");
+      const yellowCards = container.querySelectorAll('[data-consensus="false"]');
       expect(yellowCards.length).toBeGreaterThan(0);
     });
 
@@ -269,8 +269,8 @@ describe("VoteResults", () => {
       // Check for consensus label
       expect(screen.getByText("Consensus")).toBeInTheDocument();
 
-      // Check for consensus value in the consensus card (text-6xl)
-      const consensusCard = container.querySelector(".text-6xl");
+      // Check for consensus value in the result headline
+      const consensusCard = container.querySelector('[data-testid="result-headline"]');
       expect(consensusCard).toHaveTextContent("M");
     });
 
@@ -314,12 +314,12 @@ describe("VoteResults", () => {
       );
 
       // Mode is M (appears twice)
-      const consensusCard = container.querySelector(".text-6xl");
+      const consensusCard = container.querySelector('[data-testid="result-headline"]');
       expect(consensusCard).toHaveTextContent("M");
       expect(screen.getByText("Most Common")).toBeInTheDocument();
     });
 
-    it("highlights consensus votes with green border", () => {
+    it("highlights consensus votes with a gold edge", () => {
       const votes: Tables<"votes">[] = [
         {
           id: "v1",
@@ -351,7 +351,7 @@ describe("VoteResults", () => {
 
       // Mode is M (first in list), L is within 1 step (consensus)
       // Both should have green border
-      const greenCards = container.querySelectorAll(".border-green-500");
+      const greenCards = container.querySelectorAll('[data-consensus="true"]');
       expect(greenCards.length).toBe(2);
     });
 
@@ -444,11 +444,11 @@ describe("VoteResults", () => {
         />
       );
 
-      // Get all individual vote cards (text-3xl within truncate containers, not the consensus)
-      const voteCards = container.querySelectorAll(".truncate .text-3xl");
-      expect(voteCards[0].textContent).toBe("3");
-      expect(voteCards[1].textContent).toBe("5");
-      expect(voteCards[2].textContent).toBe("8");
+      // Get all individual vote cards (face-up cards in the fan, not the headline)
+      const voteCards = container.querySelectorAll('[data-slot="playing-card"]');
+      expect(voteCards[0].textContent).toMatch(/^3/);
+      expect(voteCards[1].textContent).toMatch(/^5/);
+      expect(voteCards[2].textContent).toMatch(/^8/);
     });
 
     it("displays participant names with their votes", () => {

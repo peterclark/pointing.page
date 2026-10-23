@@ -5,20 +5,22 @@ import { Input } from "@/components/ui/input";
 import { CreateRoomDialog } from "@/components/CreateRoomDialog";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
-import { WavyBackground } from "@/components/ui/wavy-background";
-import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
-import Header from "@/components/Header";
+import { PlayingCard } from "@/components/PlayingCard";
+import { fanStyle, isRedCard } from "@/lib/cards";
+import { useCardTable } from "@/hooks/useCardTable";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 
 /**
  * Landing Page Component
  *
- * Displays a centered "Create Room" button that opens the room creation dialog.
+ * Displays a dealt hand and a "Deal a new room" button that opens the room
+ * creation dialog, plus a field to join an existing room by code.
  * This is the entry point for users who want to start a new story pointing session.
  * Also displays error toasts if navigated here with an error message.
  * Manages loading state for room creation flow with LoadingScreen overlay.
  */
 export function LandingPage() {
+  useCardTable();
   const { isCreateRoomDialogOpen, setIsCreateRoomDialogOpen } =
     useCommandPalette();
   const [isLoading, setIsLoading] = useState(false);
@@ -109,55 +111,77 @@ export function LandingPage() {
   );
 
   return (
-    <div className="bg-black">
-      {/* The background and brand stay up behind the Create a Room card, moved
-          to the top so the card has room beneath them. */}
-      <WavyBackground
-        containerClassName={
-          isCreateRoomDialogOpen ? "justify-start pt-2 md:pt-12" : undefined
-        }
-        className="mx-auto flex w-full flex-col items-center px-4"
-      >
-        <Header />
-        {!isCreateRoomDialogOpen && (
-          <>
-            <TypewriterEffectSmooth words={tagline} />
+    <div className="flex min-h-dvh flex-col px-6 pt-4 pb-10">
+      <p className="font-display flex h-11 items-center justify-center text-2xl">
+        Pointing<span className="text-suit">.</span>page
+      </p>
+
+      <main className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center gap-8 sm:max-w-[480px]">
+        {/* A dealt hand, purely decorative */}
+        <div
+          aria-hidden="true"
+          className="relative mx-auto h-[180px] w-full sm:h-[250px]"
+        >
+          {heroHand.map((value, index) => (
+            <PlayingCard
+              key={value}
+              value={value}
+              red={isRedCard(index)}
+              style={{
+                ...fanStyle(index, heroHand.length, { tilt: 9, dip: 5 }),
+                left: `calc(50% + ${(index - 2) * 36}px)`,
+              }}
+              className="fan-card absolute top-4 h-[140px] w-[100px] -translate-x-1/2 sm:h-[198px] sm:w-[140px]"
+            />
+          ))}
+        </div>
+
+        <div className="space-y-3 text-center">
+          <h1 className="font-display text-[2.5rem] leading-none sm:text-6xl">
+            Deal the story.
+            <br />
+            Show your hands.
+          </h1>
+          <p className="text-balance text-ivory/80">
+            Everyone picks a card face down. The leader flips them all at once.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Button
+            size="lg"
+            onClick={() => setIsCreateRoomDialogOpen(true)}
+            className="h-14 w-full rounded-2xl bg-ivory text-lg font-extrabold text-ink hover:bg-ivory/90"
+          >
+            Deal a new room
+          </Button>
+          <form
+            onSubmit={handleJoinByCode}
+            className="flex gap-2"
+            aria-label="Join a room with a code"
+          >
+            <Input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              placeholder="Have a code? ABCD-1234"
+              aria-label="Room code"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={9}
+              className="h-13 rounded-2xl border-2 border-ivory/30 bg-felt-deep/40 px-4 font-mono tracking-wider text-ivory placeholder:font-card placeholder:tracking-normal placeholder:text-ivory/50"
+            />
             <Button
-              size="lg"
+              type="submit"
               variant="outline"
-              onClick={() => setIsCreateRoomDialogOpen(true)}
-              className="h-14 text-xl sm:h-15 sm:text-2xl text-white/75! hover:text-white! border-white/50! hover:border-white! hover:bg-white/10! bg-transparent! mt-[max(9rem,26dvh)] sm:mt-50 w-full max-w-[400px] self-center rounded-full border-2"
+              disabled={!isJoinCodeValid}
+              className="h-13 rounded-2xl border-2 border-ivory/55 bg-transparent px-5 text-base font-semibold text-ivory hover:bg-ivory/10 hover:text-ivory"
             >
-              Enter
+              Join
             </Button>
-            <form
-              onSubmit={handleJoinByCode}
-              className="mt-4 flex w-full max-w-[400px] gap-2 self-center"
-              aria-label="Join a room with a code"
-            >
-              <Input
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                placeholder="Have a code? ABCD-1234"
-                aria-label="Room code"
-                autoComplete="off"
-                autoCapitalize="characters"
-                spellCheck={false}
-                maxLength={9}
-                className="h-12 rounded-full border-white/30 bg-transparent text-center font-mono tracking-wider text-white placeholder:font-sans placeholder:tracking-normal placeholder:text-white/40"
-              />
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={!isJoinCodeValid}
-                className="h-12 rounded-full border-white/50 bg-transparent px-5 text-white/75 hover:bg-white/10 hover:text-white"
-              >
-                Join
-              </Button>
-            </form>
-          </>
-        )}
-      </WavyBackground>
+          </form>
+        </div>
+      </main>
 
       <CreateRoomDialog
         open={isCreateRoomDialogOpen}
@@ -179,33 +203,4 @@ export function LandingPage() {
   );
 }
 
-const tagline = [
-  {
-    text: "Harness",
-    className: "text-white/90",
-  },
-  {
-    text: "the",
-    className: "font-light text-white/90",
-  },
-  {
-    text: "power",
-    className: "text-white/90",
-  },
-  {
-    text: "of",
-    className: "font-light text-white/90",
-  },
-  {
-    text: "collaborative",
-    className: "text-white/90",
-  },
-  {
-    text: "story",
-    className: "text-white/90",
-  },
-  {
-    text: "pointing.",
-    className: "text-blue-500 dark:text-blue-400",
-  },
-];
+const heroHand = ["1", "2", "3", "5", "8"];

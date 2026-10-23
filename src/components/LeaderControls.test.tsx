@@ -52,7 +52,7 @@ describe("LeaderControls", () => {
       expect(container.firstChild).toBeNull();
     });
 
-    it("renders Reveal Votes button when leader and story is active but not revealed", () => {
+    it("renders Flip all cards button when leader and story is active but not revealed", () => {
       render(
         <LeaderControls
           roomId="room1"
@@ -62,10 +62,10 @@ describe("LeaderControls", () => {
         />
       );
 
-      expect(screen.getByText("Reveal Votes")).toBeInTheDocument();
+      expect(screen.getByText("Flip all cards")).toBeInTheDocument();
     });
 
-    it("renders Next Story button when leader and votes are revealed", () => {
+    it("renders Deal next story button when leader and votes are revealed", () => {
       render(
         <LeaderControls
           roomId="room1"
@@ -75,11 +75,11 @@ describe("LeaderControls", () => {
         />
       );
 
-      expect(screen.getByText("Next Story")).toBeInTheDocument();
+      expect(screen.getByText("Deal next story")).toBeInTheDocument();
     });
   });
 
-  describe("Reveal Votes button", () => {
+  describe("Flip all cards button", () => {
     it("calls revealVotes when clicked", async () => {
       const user = userEvent.setup();
       vi.mocked(queries.revealVotes).mockResolvedValue();
@@ -93,7 +93,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Reveal Votes");
+      const button = screen.getByText("Flip all cards");
       await user.click(button);
 
       await waitFor(() => {
@@ -114,7 +114,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Reveal Votes");
+      const button = screen.getByText("Flip all cards");
       await user.click(button);
 
       await waitFor(() => {
@@ -136,7 +136,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Reveal Votes");
+      const button = screen.getByText("Flip all cards");
       await user.click(button);
 
       await waitFor(() => {
@@ -161,7 +161,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Reveal Votes");
+      const button = screen.getByText("Flip all cards");
       await user.click(button);
 
       // Button should be disabled during operation
@@ -169,7 +169,7 @@ describe("LeaderControls", () => {
     });
   });
 
-  describe("Next Story button", () => {
+  describe("Deal next story button", () => {
     it("calls clearActiveStory when clicked", async () => {
       const user = userEvent.setup();
       vi.mocked(queries.clearActiveStory).mockResolvedValue();
@@ -183,7 +183,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Next Story");
+      const button = screen.getByText("Deal next story");
       await user.click(button);
 
       await waitFor(() => {
@@ -204,7 +204,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Next Story");
+      const button = screen.getByText("Deal next story");
       await user.click(button);
 
       await waitFor(() => {
@@ -226,7 +226,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Next Story");
+      const button = screen.getByText("Deal next story");
       await user.click(button);
 
       await waitFor(() => {
@@ -251,7 +251,7 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Next Story");
+      const button = screen.getByText("Deal next story");
       await user.click(button);
 
       // Button should be disabled during operation
@@ -260,7 +260,7 @@ describe("LeaderControls", () => {
   });
 
   describe("button styling", () => {
-    it("uses default variant for Reveal Votes button", () => {
+    it("makes Flip all cards the red call to action", () => {
       render(
         <LeaderControls
           roomId="room1"
@@ -270,11 +270,11 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Reveal Votes");
-      expect(button.className).toContain("bg-primary");
+      const button = screen.getByText("Flip all cards");
+      expect(button.className).toContain("bg-suit");
     });
 
-    it("uses secondary variant for Next Story button", () => {
+    it("makes Deal next story the ivory call to action", () => {
       render(
         <LeaderControls
           roomId="room1"
@@ -284,12 +284,11 @@ describe("LeaderControls", () => {
         />
       );
 
-      const button = screen.getByText("Next Story");
-      // Next Story button uses primary color
-      expect(button.className).toContain("bg-primary");
+      const button = screen.getByText("Deal next story");
+      expect(button.className).toContain("bg-ivory");
     });
 
-    it("uses lg size for both buttons", () => {
+    it("sizes both buttons for thumbs", () => {
       const { rerender } = render(
         <LeaderControls
           roomId="room1"
@@ -299,8 +298,8 @@ describe("LeaderControls", () => {
         />
       );
 
-      const revealButton = screen.getByText("Reveal Votes");
-      expect(revealButton.className).toContain("h-10");
+      const revealButton = screen.getByText("Flip all cards");
+      expect(revealButton.className).toContain("h-14");
 
       rerender(
         <LeaderControls
@@ -311,8 +310,8 @@ describe("LeaderControls", () => {
         />
       );
 
-      const nextButton = screen.getByText("Next Story");
-      expect(nextButton.className).toContain("h-10");
+      const nextButton = screen.getByText("Deal next story");
+      expect(nextButton.className).toContain("h-14");
     });
   });
 
