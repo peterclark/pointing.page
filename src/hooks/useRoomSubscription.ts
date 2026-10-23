@@ -123,6 +123,9 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  // Kept apart from `error` so a recovered channel can clear it without
+  // hiding a failed data load.
+  const [connectionError, setConnectionError] = useState<Error | null>(null);
   const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
 
   // Bumped by refetch(); the reload effect below runs on every change.
@@ -146,6 +149,8 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     // Reset state when roomId changes
     setIsLoading(true);
     setError(null);
+    setConnectionError(null);
+    errorCountRef.current = 0;
 
     // Monitor network connection status
     const handleOnline = () => {
@@ -262,41 +267,37 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
         }
       )
       .subscribe((status, err) => {
-        if (status === "SUBSCRIBED") {
-          // Clear reconnecting state and reset error count on successful connection
-          // Note: We don't clear errors here because they might be from initial data fetch
-          if (isMounted) {
-            setIsReconnecting(false);
-            errorCountRef.current = 0;
-          }
-        } else if (status === "CHANNEL_ERROR") {
-          if (isMounted) {
-            errorCountRef.current += 1;
+        if (!isMounted) return;
 
-            // If we've had multiple consecutive errors without successful reconnection, show error
-            if (errorCountRef.current >= maxErrorsBeforeFailure) {
-              setError(
-                new Error(`Connection error: ${err}. Please refresh the page.`)
-              );
-              setIsReconnecting(false);
-            } else {
-              // First few errors - just show reconnecting state, Supabase will auto-reconnect
-              setIsReconnecting(true);
-              setError(null);
-            }
-          }
-        } else if (status === "TIMED_OUT") {
-          if (isMounted) {
-            errorCountRef.current += 1;
-            if (errorCountRef.current >= maxErrorsBeforeFailure) {
-              setError(
-                new Error("Connection timed out. Please refresh the page.")
-              );
-              setIsReconnecting(false);
-            } else {
-              setIsReconnecting(true);
-              setError(null);
-            }
+        if (status === "SUBSCRIBED") {
+          // realtime-js keeps rejoining after a timeout or channel error, so a
+          // connection error is never final: clear it once the channel is back,
+          // and reload to pick up whatever changed while it was down.
+          const recovered = errorCountRef.current > 0;
+          errorCountRef.current = 0;
+          setIsReconnecting(false);
+          setConnectionError(null);
+          if (recovered) refetch();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          errorCountRef.current += 1;
+
+          // Safari throttles timers in a background tab, so heartbeats and
+          // joins time out there routinely. Only give up while someone is
+          // actually looking at the page.
+          if (
+            errorCountRef.current >= maxErrorsBeforeFailure &&
+            document.visibilityState === "visible"
+          ) {
+            setIsReconnecting(false);
+            setConnectionError(
+              new Error(
+                status === "TIMED_OUT"
+                  ? "Connection timed out. Please refresh the page."
+                  : `Connection error: ${err}. Please refresh the page.`
+              )
+            );
+          } else {
+            setIsReconnecting(true);
           }
         }
       });
@@ -308,7 +309,7 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [roomId]); // Only re-run when roomId changes
+  }, [roomId, refetch]); // refetch is stable, so this re-runs only on roomId
 
   useEffect(() => {
     if (!roomId || reloadToken === 0) return;
@@ -407,7 +408,7 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [activeStoryId]);
+  }, [activeStoryId, reloadToken]);
 
   // Who has voted, as distinct from what they voted. RLS hides another
   // participant's unrevealed vote row outright, so this is the only signal the
@@ -464,7 +465,7 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [activeStoryId]);
+  }, [activeStoryId, reloadToken]);
 
   return {
     stories,
@@ -472,7 +473,7 @@ export function useRoomSubscription(roomId: string): RoomSubscriptionData {
     votedParticipantIds,
     participants,
     isLoading,
-    error,
+    error: error ?? connectionError,
     isReconnecting,
     refetch,
   };

@@ -734,6 +734,63 @@ describe('useRoomSubscription', () => {
   });
 
 
+  it('clears a timeout error once the channel rejoins', async () => {
+    vi.mocked(supabase.from).mockImplementation((() => ({
+      select: vi.fn().mockReturnThis(),
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    })) as never);
+
+    let emit: (status: string, err?: unknown) => void = () => {};
+    mockChannel.subscribe = vi.fn().mockImplementation((callback) => {
+      if (callback) emit = callback;
+      return mockChannel;
+    });
+
+    const { result } = renderHook(() => useRoomSubscription('test-room-id'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    emit('TIMED_OUT');
+    emit('TIMED_OUT');
+    emit('TIMED_OUT');
+    await waitFor(() => expect(result.current.error?.message).toMatch(/timed out/i));
+
+    emit('SUBSCRIBED');
+    await waitFor(() => expect(result.current.error).toBeNull());
+  });
+
+  it('does not give up while the tab is in the background', async () => {
+    vi.mocked(supabase.from).mockImplementation((() => ({
+      select: vi.fn().mockReturnThis(),
+      then: (onOk: (v: unknown) => unknown) => onOk({ data: [], error: null }),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    })) as never);
+
+    let emit: (status: string, err?: unknown) => void = () => {};
+    mockChannel.subscribe = vi.fn().mockImplementation((callback) => {
+      if (callback) emit = callback;
+      return mockChannel;
+    });
+
+    const visibility = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('hidden');
+
+    const { result } = renderHook(() => useRoomSubscription('test-room-id'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    emit('TIMED_OUT');
+    emit('TIMED_OUT');
+    emit('TIMED_OUT');
+    emit('TIMED_OUT');
+
+    await waitFor(() => expect(result.current.isReconnecting).toBe(true));
+    expect(result.current.error).toBeNull();
+    visibility.mockRestore();
+  });
+
   it('reports who has voted from receipts, not from votes', async () => {
     // votes_select withholds another participant's unrevealed row, so `votes`
     // can never answer "who has voted" for anyone but you. vote_receipts can.
