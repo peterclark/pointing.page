@@ -14,6 +14,7 @@ import {
   calculateFibonacciConsensus,
   calculateTshirtConsensus,
   isConsensusVote,
+  consensusRange,
   sortVotesByValue,
   filterVisibleVotes,
 } from "./utils";
@@ -210,6 +211,22 @@ describe("T-shirt Consensus Calculation", () => {
 
     // Should be one of the tied values
     expect(["S", "M"]).toContain(result.mode);
+  });
+});
+
+describe("consensusRange", () => {
+  it("spans two Fibonacci steps either side, clamped to the deck", () => {
+    expect(consensusRange(5, "fibonacci")).toMatchObject({ low: "2", high: "13" });
+    expect(consensusRange(1, "fibonacci")).toMatchObject({ low: "1", high: "3" });
+  });
+
+  it("spans one T-shirt step either side", () => {
+    expect(consensusRange("M", "t-shirt")).toMatchObject({ low: "S", high: "L" });
+    expect(consensusRange("XXL", "t-shirt")).toMatchObject({ low: "XL", high: "XXL" });
+  });
+
+  it("returns null for a value off the scale", () => {
+    expect(consensusRange(0, "fibonacci")).toBeNull();
   });
 });
 
