@@ -1,8 +1,8 @@
 {
-  "lines": 90.06,
+  "lines": 90.07,
   "statements": 89.27,
-  "branches": 82.6,
+  "branches": 82.65,
   "functions": 91.1,
-  "coveredLines": 1206,
-  "totalLines": 1339
+  "coveredLines": 1207,
+  "totalLines": 1340
 }
