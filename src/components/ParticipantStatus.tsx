@@ -1,3 +1,4 @@
+import { Crown } from "lucide-react";
 import { PlayingCard } from "@/components/PlayingCard";
 import type { Tables } from "@/lib/supabase/client";
 
@@ -23,7 +24,7 @@ interface ParticipantStatusProps {
  * Features:
  * - A face-down card once someone has voted, without revealing what
  * - An empty dashed slot while they are still choosing
- * - Leader indicator with crown emoji
+ * - Leader indicator with the same crown as the Rooms menu
  * - Shows point values face up after reveal
  * - Cards overlap slightly and wrap onto more rows in a large room
  */
@@ -65,9 +66,11 @@ export function ParticipantStatus({
             )}
             <span className="max-w-full truncate text-[13px] font-semibold">
               {participant.is_leader && (
-                <span className="mr-0.5" aria-label="Leader">
-                  👑
-                </span>
+                <Crown
+                  role="img"
+                  aria-label="Leader"
+                  className="mr-1 inline size-3.5 -translate-y-px text-gold"
+                />
               )}
               {participant.name}
               <span className="sr-only">

@@ -200,7 +200,7 @@ describe("ActiveRoomPage - End-to-End Integration", () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText(/create a story/i)).toBeInTheDocument();
+        expect(screen.getByText(/deal a story/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/story title/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /start voting/i })).toBeInTheDocument();

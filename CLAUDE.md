@@ -64,7 +64,7 @@ Configured in both vite.config.ts:10-12 and tsconfig.json:12-14:
 - **Base Color**: slate (components.json:9)
 - **Utility Function**: `cn()` in src/lib/utils.ts combines clsx and tailwind-merge for conditional classes
 - **Responsive Design**: Mobile-first approach with sm:, md:, lg: breakpoints
-- **Card Table Theme**: The landing and room pages call `useCardTable()`, which puts `felt dark` on `<body>`; `.felt` in `src/index.css` tints the shadcn palette green. Colors `felt`, `ivory`, `ink`, `suit`, `gold` and fonts `font-display`, `font-card` are theme tokens
+- **Card Table Theme**: Every page is on the felt. The landing and room pages call `useCardTable()` (the profile and settings pages get it through the `TablePage` layout), which puts `felt dark` on `<body>`; there is no light theme or theme switch any more; `.felt` in `src/index.css` tints the shadcn palette green. Colors `felt`, `ivory`, `ink`, `suit`, `gold` and fonts `font-display`, `font-card` are theme tokens
 - **Fanned Cards**: `PlayingCard` draws a card face or back; `fanStyle()` in `src/lib/cards.ts` with the `.fan-card` class tilts it into a fan. Fans sit in shrinking flex slots so they overlap more on narrow screens instead of wrapping
 
 ### Component Patterns

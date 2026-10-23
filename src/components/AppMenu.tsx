@@ -13,27 +13,18 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  DoorClosed,
-  LaptopMinimal,
-  MenuIcon,
-  MoonIcon,
-  SunIcon,
-} from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { DoorClosed, MenuIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useAuth } from "@/hooks/useAuth";
 import { CurrentUserAvatar } from "@/components/current-user-avatar";
 import { RecentRoomsMenuItems } from "@/components/RecentRoomsMenuItems";
 import { signOut } from "@/lib/supabase/auth";
-import { toast } from "sonner";
 
 // Support requests go to the public issue tracker.
 const SUPPORT_URL = "https://github.com/peterclark/pointing.page/issues/new";
 
 export function AppMenu() {
-  const { setTheme } = useTheme();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { registerCommand, showHelp, openCreateRoomDialog } =
@@ -98,35 +89,6 @@ export function AppMenu() {
         category: "room",
       }),
 
-      // Theme commands
-      registerCommand({
-        key: "l",
-        description: "Light theme",
-        action: () => {
-          setTheme("light");
-          toast.success("Switched to light theme");
-        },
-        category: "theme",
-      }),
-      registerCommand({
-        key: "d",
-        description: "Dark theme",
-        action: () => {
-          setTheme("dark");
-          toast.success("Switched to dark theme");
-        },
-        category: "theme",
-      }),
-      registerCommand({
-        key: "t",
-        description: "System theme",
-        action: () => {
-          setTheme("system");
-          toast.success("Switched to system theme");
-        },
-        category: "theme",
-      }),
-
       // Help commands
       registerCommand({
         key: "?",
@@ -149,7 +111,6 @@ export function AppMenu() {
     };
   }, [
     navigate,
-    setTheme,
     registerCommand,
     showHelp,
     openCreateRoomDialog,
@@ -202,24 +163,6 @@ export function AppMenu() {
               <DoorClosed />
               New Room
               <DropdownMenuShortcut>⌘K R</DropdownMenuShortcut>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setTheme("light")}>
-              <SunIcon />
-              Light
-              <DropdownMenuShortcut>⌘K L</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")}>
-              <MoonIcon />
-              Dark
-              <DropdownMenuShortcut>⌘K D</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")}>
-              <LaptopMinimal />
-              System
-              <DropdownMenuShortcut>⌘K T</DropdownMenuShortcut>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

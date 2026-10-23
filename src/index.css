@@ -148,6 +148,8 @@
     var(--color-felt-deep) 100%
   );
   background-attachment: fixed;
+  /* Shows past the gradient where a long page outgrows the viewport */
+  background-color: var(--color-felt-deep);
   color: var(--color-ivory);
   font-family: var(--font-card);
 }

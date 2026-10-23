@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { PlayingCard } from "@/components/PlayingCard";
+import { fanStyle } from "@/lib/cards";
 
 interface LoadingScreenProps {
   /**
@@ -105,27 +107,41 @@ export function LoadingScreen({
   const message = isCreating ? "Creating your room..." : "Joining your room...";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
-      <div className="w-full max-w-[600px] px-6">
+    <div className="felt dark fixed inset-0 z-50 flex items-center justify-center">
+      <div className="w-full max-w-[420px] px-6">
+        {/* Three cards being dealt, purely decorative */}
+        <div aria-hidden="true" className="relative mx-auto mb-8 h-[110px] w-[150px]">
+          {[0, 1, 2].map((index) => (
+            <PlayingCard
+              key={index}
+              style={{ ...fanStyle(index, 3, { tilt: 10, dip: 4 }), left: `${index * 28}px` }}
+              className={cn(
+                "fan-card absolute top-0 h-[100px] w-[72px]",
+                isPulsing && "animate-pulse"
+              )}
+            />
+          ))}
+        </div>
+
         {/* Message and Percentage Row */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-lg font-medium text-foreground">{message}</p>
-          <p className="text-lg font-semibold text-foreground">{progress}%</p>
+        <div className="mb-4 flex items-baseline justify-between gap-4">
+          <p className="font-display text-2xl">{message}</p>
+          <p className="font-extrabold tabular-nums text-ivory/80">{progress}%</p>
         </div>
 
         {/* Progress Bar */}
         <Progress
           value={progress}
           className={cn(
-            "h-3 transition-all duration-200",
+            "h-3 bg-ivory/15 transition-all duration-200 *:data-[slot=progress-indicator]:bg-gold",
             isPulsing && "animate-pulse"
           )}
         />
 
         {/* Error Message */}
         {error && (
-          <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 p-4">
-            <p className="text-sm text-destructive">{error}</p>
+          <div className="mt-4 rounded-2xl bg-suit/25 p-4">
+            <p className="text-sm text-ivory">{error}</p>
           </div>
         )}
       </div>

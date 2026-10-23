@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { ParticipantStatus } from "./ParticipantStatus";
 import type { Tables } from "@/lib/supabase/client";
 
@@ -80,13 +80,13 @@ describe("ParticipantStatus", () => {
       />
     );
 
-    // Alice is the leader and should have crown emoji
-    const aliceBadge = screen.getByText(/alice/i).closest("span");
-    expect(aliceBadge?.textContent).toContain("👑");
+    // Alice is the leader and wears the crown
+    const aliceName = screen.getByText(/alice/i).closest("span");
+    expect(within(aliceName!).getByLabelText("Leader")).toBeInTheDocument();
 
     // Bob is not the leader
-    const bobBadge = screen.getByText(/bob/i).closest("span");
-    expect(bobBadge?.textContent).not.toContain("👑");
+    const bobName = screen.getByText(/bob/i).closest("span");
+    expect(within(bobName!).queryByLabelText("Leader")).not.toBeInTheDocument();
   });
 
   it("shows a face-down card for participants who voted", () => {
