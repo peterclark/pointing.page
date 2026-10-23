@@ -3,6 +3,8 @@ import { LandingPage } from "./pages/LandingPage";
 import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import { JoinRoomHandler } from "./pages/JoinRoomHandler";
 import { ProfilePage } from "./pages/ProfilePage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { AdminPage } from "./pages/AdminPage";
 import { RootLayout } from "./components/RootLayout";
 
 /**
@@ -12,6 +14,8 @@ import { RootLayout } from "./components/RootLayout";
  * - /room/:roomCode : Active room view
  * - /join/:roomCode : Join flow handler (validates and redirects)
  * - /profile : Profile/account page
+ * - /settings : Theme and default name
+ * - /admin : Usage metrics (admins only)
  */
 export const router = createBrowserRouter([
   {
@@ -32,6 +36,14 @@ export const router = createBrowserRouter([
       {
         path: "/profile",
         element: <ProfilePage />,
+      },
+      {
+        path: "/settings",
+        element: <SettingsPage />,
+      },
+      {
+        path: "/admin",
+        element: <AdminPage />,
       },
     ],
   },

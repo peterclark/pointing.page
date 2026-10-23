@@ -1,6 +1,11 @@
 import { supabase } from "./client";
 import { toast } from "sonner";
+import { getCaptchaToken } from "@/lib/captcha";
 import type { Session } from "@supabase/supabase-js";
+
+/** Shown when a write needs a session and `ensureSession` could not make one. */
+export const SESSION_ERROR =
+  "Couldn't start your session. Check your connection and try again.";
 
 /**
  * Guarantee the client has a session, signing in anonymously if it does not.
@@ -29,7 +34,18 @@ export async function ensureSession(): Promise<Session | null> {
 
   if (session) return session;
 
-  const { data, error } = await supabase.auth.signInAnonymously();
+  let captchaToken: string | undefined;
+  try {
+    captchaToken = await getCaptchaToken();
+  } catch (err) {
+    // Sign-in is attempted anyway: if CAPTCHA protection is on it will be
+    // refused and the app degrades to read-only, same as any sign-in failure.
+    console.error("[ensureSession] CAPTCHA failed:", err);
+  }
+
+  const { data, error } = await supabase.auth.signInAnonymously(
+    captchaToken ? { options: { captchaToken } } : undefined
+  );
 
   if (error) {
     // Leaves the app usable read-only rather than blank: policies fail closed,
@@ -39,6 +55,58 @@ export async function ensureSession(): Promise<Session | null> {
   }
 
   return data.session;
+}
+
+export type OAuthProvider = "google" | "github";
+
+const PENDING_PROVIDER_KEY = "pending_oauth_provider";
+
+/** Called before `linkIdentity()`, so a conflict on return knows which provider to retry. */
+export function rememberOAuthProvider(provider: OAuthProvider): void {
+  try {
+    sessionStorage.setItem(PENDING_PROVIDER_KEY, provider);
+  } catch {
+    // Without storage a conflict just leaves the visitor as a guest.
+  }
+}
+
+/**
+ * Finish signing in a returning user whose provider is already linked.
+ *
+ * Sign-in links the provider to the visitor's guest identity. When that
+ * provider already belongs to an account, Supabase refuses the link and comes
+ * back with `error_code=identity_already_exists`, leaving the guest session in
+ * place. The person asked to sign in, so sign them in to that account instead.
+ * Rooms joined as this guest stay with the guest.
+ *
+ * Returns true when it has started the redirect to the provider.
+ */
+export async function resumeSignInAfterLinkConflict(): Promise<boolean> {
+  const { location, history } = window;
+  const params = new URLSearchParams(location.hash.slice(1));
+  new URLSearchParams(location.search).forEach((value, key) => params.set(key, value));
+  if (params.get("error_code") !== "identity_already_exists") return false;
+
+  history.replaceState(null, "", location.pathname);
+
+  let provider: string | null = null;
+  try {
+    provider = sessionStorage.getItem(PENDING_PROVIDER_KEY);
+    sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+  } catch {
+    // Fall through: nothing to retry with.
+  }
+  if (provider !== "google" && provider !== "github") return false;
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: `${location.origin}/` },
+  });
+  if (error) {
+    console.error("[resumeSignInAfterLinkConflict] Sign-in failed:", error);
+    return false;
+  }
+  return true;
 }
 
 /**

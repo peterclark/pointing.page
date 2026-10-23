@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { LandingPage } from "./LandingPage";
 import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
+import { CreateRoomFlow } from "@/components/CreateRoomFlow";
 
 // Mock the CreateRoomDialog component
 vi.mock("@/components/CreateRoomDialog", () => ({
@@ -19,52 +20,55 @@ vi.mock("@/components/CreateRoomDialog", () => ({
   ),
 }));
 
-// Mock the WavyBackground component (uses canvas which doesn't work in jsdom)
-vi.mock("@/components/ui/wavy-background", () => ({
-  WavyBackground: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="wavy-background" className={className}>
-      {children}
-    </div>
-  ),
-}));
-
-// Mock the TypewriterEffectSmooth component
-vi.mock("@/components/ui/typewriter-effect", () => ({
-  TypewriterEffectSmooth: ({ words }: { words: Array<{ text: string; className?: string }> }) => (
-    <div data-testid="typewriter-effect">
-      {words.map((word, idx) => (
-        <span key={idx} className={word.className}>
-          {word.text}{" "}
-        </span>
-      ))}
-    </div>
-  ),
-}));
-
-// Helper to render LandingPage with Router and CommandPaletteProvider
+// Helper to render LandingPage with the create room flow RootLayout provides
 function renderLandingPage() {
   return render(
     <CommandPaletteProvider>
       <MemoryRouter>
         <LandingPage />
+        <CreateRoomFlow />
       </MemoryRouter>
     </CommandPaletteProvider>
   );
 }
 
 describe("LandingPage", () => {
-  it("renders enter button", () => {
+  it("joins a room by code, accepting the dashed display format", () => {
+    render(
+      <CommandPaletteProvider>
+        <MemoryRouter initialEntries={["/"]}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/join/:roomCode" element={<p>joining</p>} />
+          </Routes>
+        </MemoryRouter>
+      </CommandPaletteProvider>
+    );
+
+    const join = screen.getByRole("button", { name: /^join$/i });
+    const input = screen.getByLabelText(/room code/i);
+
+    fireEvent.change(input, { target: { value: "abc" } });
+    expect(join).toBeDisabled();
+
+    fireEvent.change(input, { target: { value: "abcd-1234" } });
+    fireEvent.click(join);
+
+    expect(screen.getByText("joining")).toBeInTheDocument();
+  });
+
+  it("renders deal a new room button", () => {
     renderLandingPage();
     expect(
-      screen.getByRole("button", { name: /enter/i })
+      screen.getByRole("button", { name: /deal a new room/i })
     ).toBeInTheDocument();
   });
 
-  it("opens dialog when enter button is clicked", () => {
+  it("opens dialog when deal a new room is clicked", () => {
     renderLandingPage();
 
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     const dialog = screen.getByTestId("create-room-dialog");
     expect(dialog).toHaveAttribute("data-open", "true");
@@ -74,8 +78,8 @@ describe("LandingPage", () => {
     renderLandingPage();
 
     // Open dialog
-    const enterButton = screen.getByRole("button", { name: /enter/i });
-    fireEvent.click(enterButton);
+    const dealButton = screen.getByRole("button", { name: /deal a new room/i });
+    fireEvent.click(dealButton);
 
     // Close dialog
     const closeButton = screen.getByRole("button", { name: /close dialog/i });

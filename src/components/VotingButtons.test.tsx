@@ -59,9 +59,9 @@ describe("VotingButtons", () => {
     const button5 = screen.getByRole("button", { name: "5" });
     const button8 = screen.getByRole("button", { name: "8" });
 
-    // The selected button should have ring styling (we can check via className or variant)
-    expect(button5).toHaveClass("ring-2");
-    expect(button8).not.toHaveClass("ring-2");
+    // Selection is announced, not just drawn.
+    expect(button5).toHaveAttribute("aria-pressed", "true");
+    expect(button8).toHaveAttribute("aria-pressed", "false");
   });
 
   it("submits vote when button is clicked", async () => {
@@ -142,6 +142,6 @@ describe("VotingButtons", () => {
     fireEvent.click(button5);
 
     // Button should immediately show selected state (optimistic)
-    expect(button5).toHaveClass("ring-2");
+    expect(button5).toHaveAttribute("aria-pressed", "true");
   });
 });

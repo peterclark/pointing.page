@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env.production
+# Written by scripts/use-local-supabase.sh; holds your cloud project config
+.env.local.cloud.backup
 
 # Test coverage output
 coverage

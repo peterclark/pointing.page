@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { getPointScaleValues } from "@/lib/utils";
+import { PlayingCard } from "@/components/PlayingCard";
+import { fanStyle, isRedCard } from "@/lib/cards";
+import { cn, getPointScaleValues } from "@/lib/utils";
 import { submitVote } from "@/lib/supabase/queries";
 import { toast } from "sonner";
 
@@ -15,13 +16,13 @@ interface VotingButtonsProps {
 /**
  * Voting Buttons Component
  *
- * Displays point value buttons for participants to cast votes.
+ * Displays the room's point values as a fanned hand of playing cards.
  * Features:
- * - Dynamic button values based on room's point scale
- * - Visual highlight for currently selected vote
+ * - Dynamic card values based on room's point scale
+ * - The picked card lifts out of the hand with a gold edge
  * - Optimistic updates with rollback on error
  * - Disabled state after votes are revealed
- * - Large, touch-friendly buttons
+ * - Large, touch-friendly cards that overlap to fit narrow screens
  */
 export function VotingButtons({
   storyId,
@@ -62,25 +63,49 @@ export function VotingButtons({
   };
 
   return (
-    <div className="flex justify-around gap-2 flex-wrap">
-      {pointValues.map((value) => {
+    <div
+      role="group"
+      aria-label="Your estimate"
+      className="flex justify-center px-2 pt-10 pb-2"
+    >
+      {pointValues.map((value, index) => {
         const isSelected = displayedVote === value;
         const isDisabled = isRevealed || isSubmitting;
+        const isLast = index === pointValues.length - 1;
 
+        // Each slot shrinks as the screen narrows; the card inside keeps its
+        // size and overlaps the next slot, so the hand always fits.
         return (
-          <Button
+          <div
             key={value}
-            type="button"
-            size="lg"
-            variant={isSelected ? "default" : "outline"}
-            disabled={isDisabled}
-            onClick={() => handleVoteClick(value)}
-            className={`flex-1 aspect-square text-xl font-bold ${
-              isSelected ? "ring-2 ring-primary" : ""
-            } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={cn(
+              "relative h-[142px] min-w-5 sm:h-[168px]",
+              isLast
+                ? "shrink-0 basis-[100px] sm:basis-[120px]"
+                : "shrink basis-[76px]"
+            )}
           >
-            {value}
-          </Button>
+            <button
+              type="button"
+              disabled={isDisabled}
+              aria-pressed={isSelected}
+              aria-label={value}
+              onClick={() => handleVoteClick(value)}
+              style={fanStyle(index, pointValues.length)}
+              className={cn(
+                "fan-card absolute top-0 left-0 rounded-xl outline-none",
+                "focus-visible:ring-4 focus-visible:ring-gold/70",
+                isDisabled && !isSelected && "cursor-not-allowed opacity-70"
+              )}
+            >
+              <PlayingCard
+                value={value}
+                red={isRedCard(index)}
+                highlighted={isSelected}
+                className="h-[142px] w-[100px] sm:h-[168px] sm:w-[120px]"
+              />
+            </button>
+          </div>
         );
       })}
     </div>

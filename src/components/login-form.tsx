@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
+import { rememberOAuthProvider, type OAuthProvider } from "@/lib/supabase/auth";
 import { Button } from "@/components/ui/button";
+import { Github } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,7 +13,7 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSocialLogin = async (provider: "google" | "github") => {
+  const handleSocialLogin = async (provider: OAuthProvider) => {
     setIsLoading(true);
     setError(null);
 
@@ -27,7 +29,9 @@ export function LoginForm({
       // user and strand them. linkIdentity attaches the provider to the
       // identity they already have, so the uid — and every room they joined —
       // survives. Requires Manual Linking enabled in the Supabase dashboard;
-      // see OAUTH_SETUP.md.
+      // see OAUTH_SETUP.md. A provider that already has an account can't be
+      // linked; resumeSignInAfterLinkConflict() signs in to it on the way back.
+      if (user?.is_anonymous) rememberOAuthProvider(provider);
       const { error } = user?.is_anonymous
         ? await supabase.auth.linkIdentity({ provider, options })
         : await supabase.auth.signInWithOAuth({ provider, options });
@@ -45,34 +49,47 @@ export function LoginForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-4", className)} {...props}>
+    <div className={cn("flex flex-col gap-3", className)} {...props}>
       {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+        <div className="rounded-2xl bg-suit/25 p-3 text-sm text-ivory">
           {error}
         </div>
       )}
 
-      <div className="flex justify-between gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          className="flex-1"
-          disabled={isLoading}
-          onClick={() => handleSocialLogin("google")}
-        >
-          {isLoading ? "Connecting..." : "Google"}
-        </Button>
+      <Button
+        type="button"
+        size="lg"
+        className="h-14 w-full rounded-2xl bg-ivory text-lg font-extrabold text-ink hover:bg-ivory/90"
+        disabled={isLoading}
+        onClick={() => handleSocialLogin("google")}
+      >
+        <GoogleMark />
+        {isLoading ? "Connecting..." : "Google"}
+      </Button>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="flex-1"
-          disabled={isLoading}
-          onClick={() => handleSocialLogin("github")}
-        >
-          {isLoading ? "Connecting..." : "GitHub"}
-        </Button>
-      </div>
+      <Button
+        type="button"
+        size="lg"
+        variant="outline"
+        className="h-14 w-full rounded-2xl border-2 border-ivory/40 bg-transparent text-lg font-extrabold text-ivory hover:bg-ivory/10"
+        disabled={isLoading}
+        onClick={() => handleSocialLogin("github")}
+      >
+        <Github aria-hidden="true" className="size-5" />
+        {isLoading ? "Connecting..." : "GitHub"}
+      </Button>
     </div>
+  );
+}
+
+// Google's "G", drawn inline so the button needs no image request
+function GoogleMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5">
+      <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.1 3.5-8.7Z" />
+      <path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1 .7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9h-4v3.1A12 12 0 0 0 12 24Z" />
+      <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.7V6.6h-4a12 12 0 0 0 0 10.8l4-3Z" />
+      <path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4A12 12 0 0 0 1.4 6.6l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z" />
+    </svg>
   );
 }

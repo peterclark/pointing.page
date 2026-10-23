@@ -5,9 +5,9 @@ describe("Router Configuration", () => {
   it("should define all required routes", () => {
     const routes = router.routes;
 
-    // Router now uses nested layout structure: 1 parent with 4 children
+    // Router now uses nested layout structure: 1 parent with 6 children
     expect(routes).toHaveLength(1);
-    expect(routes[0].children).toHaveLength(4);
+    expect(routes[0].children).toHaveLength(6);
 
     // Check that all required paths exist in children
     const paths = routes[0].children?.map((route) => route.path) || [];
@@ -15,6 +15,8 @@ describe("Router Configuration", () => {
     expect(paths).toContain("/room/:roomCode");
     expect(paths).toContain("/join/:roomCode");
     expect(paths).toContain("/profile");
+    expect(paths).toContain("/settings");
+    expect(paths).toContain("/admin");
   });
 
   it("should have landing page at root path", () => {

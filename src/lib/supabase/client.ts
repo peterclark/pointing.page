@@ -76,6 +76,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10, // Rate limit for real-time events
     },
+    // Send heartbeats from a Web Worker. Safari throttles timers in background
+    // tabs, so main-thread heartbeats arrive late, the socket is dropped, and
+    // the room page used to land on "Connection timed out".
+    worker: typeof Worker !== "undefined",
   },
 
   db: {

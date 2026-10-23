@@ -9,9 +9,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { SessionGate } from "./SessionGate";
-import { ensureSession } from "@/lib/supabase/auth";
+import { ensureSession, resumeSignInAfterLinkConflict } from "@/lib/supabase/auth";
 
-vi.mock("@/lib/supabase/auth", () => ({ ensureSession: vi.fn() }));
+vi.mock("@/lib/supabase/auth", () => ({
+  ensureSession: vi.fn(),
+  resumeSignInAfterLinkConflict: vi.fn(),
+}));
 
 /** A promise plus the handle to settle it, so a test can hold the gate open. */
 function deferred<T>() {
@@ -24,6 +27,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(resumeSignInAfterLinkConflict).mockResolvedValue(false);
 });
 
 describe("SessionGate", () => {
@@ -71,5 +75,19 @@ describe("SessionGate", () => {
     );
 
     await waitFor(() => expect(screen.getByText("room")).toBeInTheDocument());
+  });
+
+  it("stays closed while a returning user is sent on to their provider", async () => {
+    vi.mocked(resumeSignInAfterLinkConflict).mockResolvedValue(true);
+
+    render(
+      <SessionGate>
+        <p>room</p>
+      </SessionGate>
+    );
+
+    await waitFor(() => expect(resumeSignInAfterLinkConflict).toHaveBeenCalled());
+    expect(ensureSession).not.toHaveBeenCalled();
+    expect(screen.queryByText("room")).not.toBeInTheDocument();
   });
 });

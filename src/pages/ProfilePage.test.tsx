@@ -23,7 +23,6 @@ vi.mock("@/lib/utils", async () => {
   return {
     ...actual,
     getParticipantName: vi.fn(),
-    getParticipantId: vi.fn(),
     saveParticipantName: vi.fn(),
   };
 });
@@ -80,7 +79,7 @@ describe("ProfilePage", () => {
       );
 
       // Verify Card structure is preserved
-      expect(screen.getByText("Create Account")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Take a seat." })).toBeInTheDocument();
       expect(screen.getByText(/sign in with google or github/i)).toBeInTheDocument();
     });
 

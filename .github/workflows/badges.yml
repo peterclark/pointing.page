@@ -28,15 +28,15 @@ jobs:
     name: Publish badge data
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
 
       # The coverage report belongs to the CI run that triggered this workflow.
       - name: Download coverage from the CI run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: coverage
