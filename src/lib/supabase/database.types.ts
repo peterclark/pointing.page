@@ -227,6 +227,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_metrics: {
+        Args: { days?: number }
+        Returns: Json
+      }
       create_room: {
         Args: {
           room_name: string
@@ -248,6 +252,7 @@ export type Database = {
         Args: { room_id_param: string }
         Returns: undefined
       }
+      is_admin: { Args: never; Returns: boolean }
       is_room_member: {
         Args: { target_room_id: string }
         Returns: boolean
