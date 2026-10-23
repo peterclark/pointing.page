@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { LandingPage } from "./LandingPage";
 import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
+import { CreateRoomFlow } from "@/components/CreateRoomFlow";
 
 // Mock the CreateRoomDialog component
 vi.mock("@/components/CreateRoomDialog", () => ({
@@ -19,12 +20,13 @@ vi.mock("@/components/CreateRoomDialog", () => ({
   ),
 }));
 
-// Helper to render LandingPage with Router and CommandPaletteProvider
+// Helper to render LandingPage with the create room flow RootLayout provides
 function renderLandingPage() {
   return render(
     <CommandPaletteProvider>
       <MemoryRouter>
         <LandingPage />
+        <CreateRoomFlow />
       </MemoryRouter>
     </CommandPaletteProvider>
   );

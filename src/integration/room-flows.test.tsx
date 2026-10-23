@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { LandingPage } from "@/pages/LandingPage";
+import { CreateRoomFlow } from "@/components/CreateRoomFlow";
 import { ActiveRoomPage } from "@/pages/ActiveRoomPage";
 import { JoinRoomHandler } from "@/pages/JoinRoomHandler";
 import { CommandPaletteProvider } from "@/contexts/CommandPaletteContext";
@@ -82,7 +83,12 @@ describe("Room Creation Flow Integration", () => {
     // Create router with landing page
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/room/:roomCode", element: <ActiveRoomPage /> },
       ],
       { initialEntries: ["/"] }
@@ -134,7 +140,12 @@ describe("Room Creation Flow Integration", () => {
     // Create router with join handler
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/join/:roomCode", element: <JoinRoomHandler /> },
       ],
       { initialEntries: ["/join/invalid"] } // Invalid: too short
@@ -162,7 +173,12 @@ describe("Room Creation Flow Integration", () => {
     );
 
     const router = createMemoryRouter(
-      [{ path: "/", element: <LandingPage /> }],
+      [{ path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) }],
       { initialEntries: ["/"] }
     );
 
@@ -220,7 +236,12 @@ describe("Join Room Flow Integration", () => {
 
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/join/:roomCode", element: <JoinRoomHandler /> },
         { path: "/room/:roomCode", element: <ActiveRoomPage /> },
       ],
@@ -248,7 +269,12 @@ describe("Join Room Flow Integration", () => {
 
     const router = createMemoryRouter(
       [
-        { path: "/", element: <LandingPage /> },
+        { path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) },
         { path: "/join/:roomCode", element: <JoinRoomHandler /> },
       ],
       { initialEntries: ["/join/NOTFOUND"] } // Valid format but room doesn't exist
@@ -309,7 +335,12 @@ describe("localStorage Persistence", () => {
     });
 
     const router = createMemoryRouter(
-      [{ path: "/", element: <LandingPage /> }],
+      [{ path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) }],
       { initialEntries: ["/"] }
     );
 
@@ -413,7 +444,12 @@ describe("Form Validation", () => {
 
   it("disables point scale buttons until participant name is entered", async () => {
     const router = createMemoryRouter(
-      [{ path: "/", element: <LandingPage /> }],
+      [{ path: "/", element: (
+          <>
+            <LandingPage />
+            <CreateRoomFlow />
+          </>
+        ) }],
       { initialEntries: ["/"] }
     );
 
