@@ -331,6 +331,13 @@ describe("AppMenu", () => {
       expect(mocks.navigate).toHaveBeenCalledWith("/settings");
     });
 
+    it("navigates to the about page", async () => {
+      const click = await openMenu();
+      await click("About");
+
+      expect(mocks.navigate).toHaveBeenCalledWith("/about");
+    });
+
     it("opens the create-room dialog", async () => {
       const click = await openMenu();
       await click(/^New Room/);
