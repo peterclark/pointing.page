@@ -38,7 +38,7 @@ export function AboutPage() {
         <div>
           <p className="font-display text-2xl">Peter Clark</p>
           <p className="text-ivory/80">
-            Senior Software Engineer at Sophos, San Antonio, TX
+            Senior Software Engineer, San Antonio, TX
           </p>
         </div>
         <p className="text-sm text-ivory/70">
