@@ -5,6 +5,7 @@ import { JoinRoomHandler } from "./pages/JoinRoomHandler";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AdminPage } from "./pages/AdminPage";
+import { AboutPage } from "./pages/AboutPage";
 import { RootLayout } from "./components/RootLayout";
 
 /**
@@ -16,6 +17,7 @@ import { RootLayout } from "./components/RootLayout";
  * - /profile : Profile/account page
  * - /settings : Theme and default name
  * - /admin : Usage metrics (admins only)
+ * - /about : What the app is and who built it
  */
 export const router = createBrowserRouter([
   {
@@ -44,6 +46,10 @@ export const router = createBrowserRouter([
       {
         path: "/admin",
         element: <AdminPage />,
+      },
+      {
+        path: "/about",
+        element: <AboutPage />,
       },
     ],
   },

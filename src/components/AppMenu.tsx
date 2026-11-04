@@ -173,6 +173,9 @@ export function AppMenu() {
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate("/about")}>
+            About
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
               Support
