@@ -1,16 +1,13 @@
 /**
  * AboutPage Component
  *
- * What Pointing.page is, with a quiet credit linking to the builder's website
- * and a link to the source on GitHub.
+ * What Pointing.page is, with a quiet "Built by" credit linking to the
+ * builder's website.
  */
 
 import { TablePage } from "@/components/TablePage";
 
 export const AUTHOR_URL = "https://peterclark.us";
-export const SOURCE_URL = "https://github.com/peterclark/pointing.page";
-
-const footerLink = "text-ivory underline underline-offset-4";
 
 export function AboutPage() {
   return (
@@ -29,22 +26,15 @@ export function AboutPage() {
         nobody anchors on the first number they see.
       </p>
 
-      <p className="flex justify-center gap-6 text-sm">
+      <p className="text-center text-sm text-ivory/80">
+        Built by{" "}
         <a
           href={AUTHOR_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className={footerLink}
+          className="text-ivory underline underline-offset-4"
         >
           Peter Clark
-        </a>
-        <a
-          href={SOURCE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={footerLink}
-        >
-          Source code on GitHub
         </a>
       </p>
     </TablePage>

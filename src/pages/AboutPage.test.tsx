@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AboutPage } from "./AboutPage";
 
 describe("AboutPage", () => {
-  it("links the builder's name to their website and the source, in new tabs", () => {
+  it("credits the builder with a link to their website in a new tab", () => {
     render(
       <MemoryRouter>
         <AboutPage />
@@ -16,9 +16,9 @@ describe("AboutPage", () => {
     const author = screen.getByRole("link", { name: "Peter Clark" });
     expect(author).toHaveAttribute("href", "https://peterclark.us");
     expect(author).toHaveAttribute("target", "_blank");
-
+    expect(screen.getByText(/Built by/)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Source code on GitHub" })
-    ).toHaveAttribute("href", "https://github.com/peterclark/pointing.page");
+      screen.queryByRole("link", { name: "Source code on GitHub" })
+    ).not.toBeInTheDocument();
   });
 });
